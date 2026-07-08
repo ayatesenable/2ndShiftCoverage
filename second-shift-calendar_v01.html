@@ -1,3 +1,6 @@
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Second Shift — Coverage Calendar</title>
@@ -212,6 +215,8 @@
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
+</head>
+<body>
 <div class="wrap">
   <header>
     <div class="head-actions">
@@ -295,6 +300,27 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Optional shared database for GitHub Pages: Firebase Realtime Database.
+     1) Create a Firebase web app.
+     2) Replace the placeholder values below.
+     3) Set databaseURL to your Realtime Database URL.
+     If you leave enabled:false, the calendar uses this browser's localStorage only. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<script>
+  window.CALENDAR_DB = {
+    enabled: true,
+    config: {
+      apiKey: "AIzaSyAoJDJCL6APTt8YGS5FVV-Z3Q4xW9PYu0w",
+      authDomain: "secondshift-calendar.firebaseapp.com",
+      databaseURL: "https://secondshift-calendar-default-rtdb.firebaseio.com",
+      projectId: "secondshift-calendar",
+      appId: "1:152062702127:web:f5cdd49048607f43a2ccda"
+    },
+    path: "second-shift-calendar/v1"
+  };
+</script>
+
 <script>
 const KEY = "second-shift-calendar-v1";
 const SHARED = true;
@@ -307,7 +333,14 @@ let activeId = null;                             // local: selected profile
 const now = new Date();
 let viewYear = now.getFullYear();
 let viewMonth = now.getMonth();                  // 0-11
-let hasStorage = !!(window.storage && window.storage.get);
+let hasStorage = true; // GitHub Pages fallback: localStorage is always attempted when Firebase is not enabled.
+let dbRef = null;
+try{
+  if(window.CALENDAR_DB && window.CALENDAR_DB.enabled && window.firebase){
+    firebase.initializeApp(window.CALENDAR_DB.config);
+    dbRef = firebase.database().ref(window.CALENDAR_DB.path || KEY);
+  }
+}catch(e){ console.warn("Firebase init failed; falling back to localStorage", e); dbRef = null; }
 
 /* ---------- theme (night mode) ---------- */
 const THEME_KEY = "theme-pref";
@@ -315,7 +348,7 @@ function applyTheme(t){ document.documentElement.setAttribute("data-theme", t); 
 async function toggleTheme(){
   const next = document.documentElement.getAttribute("data-theme")==="dark" ? "light" : "dark";
   applyTheme(next);
-  try{ if(hasStorage) await window.storage.set(THEME_KEY, next, false); }catch(e){}  // personal pref
+  try{ localStorage.setItem(THEME_KEY, next); }catch(e){}  // personal pref
 }
 // initial: OS preference, applied immediately to avoid a flash
 applyTheme(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -330,7 +363,7 @@ async function toggleDashboard(){
   if(on) activeId=null;                 // read-only: no engineer selected
   buildProfiles();
   renderCalendar();
-  try{ if(hasStorage) await window.storage.set(DASH_KEY, on?"1":"", false); }catch(e){}  // sticky per device
+  try{ localStorage.setItem(DASH_KEY, on?"1":""); }catch(e){}  // sticky per device
   toast(on ? "View-only dashboard on" : "Editing enabled");
 }
 // a link ending in #view / #dashboard opens straight into read-only mode (when the browser passes it through)
@@ -338,19 +371,26 @@ try{ if(/view|dash/i.test(location.hash||"")) applyDash(true); }catch(e){}
 
 /* ---------- storage ---------- */
 async function load(){
-  if(!hasStorage) return;
   try{
-    const res = await window.storage.get(KEY, SHARED);
-    if(res && res.value){
-      const p = JSON.parse(res.value);
+    if(dbRef){
+      const snap = await dbRef.get();
+      const p = snap.exists() ? snap.val() : null;
+      if(p) data = { engineers: p.engineers||[], dates: p.dates||{}, primary: p.primary||{}, locked: p.locked||{} };
+      return;
+    }
+    const raw = localStorage.getItem(KEY);
+    if(raw){
+      const p = JSON.parse(raw);
       data = { engineers: p.engineers||[], dates: p.dates||{}, primary: p.primary||{}, locked: p.locked||{} };
     }
-  }catch(e){ /* not set yet */ }
+  }catch(e){ console.warn("Load failed", e); }
 }
 async function save(){
-  if(!hasStorage) return;
-  try{ await window.storage.set(KEY, JSON.stringify(data), SHARED); }
-  catch(e){ toast("Could not save — check your connection"); }
+  try{
+    if(dbRef){ await dbRef.set(data); return; }
+    localStorage.setItem(KEY, JSON.stringify(data));
+  }
+  catch(e){ toast("Could not save — check your database or browser storage"); }
 }
 
 /* ---------- helpers ---------- */
@@ -845,10 +885,13 @@ function clearScopeDialog(monthLabel, engineersInMonth){
 /* ---------- init ---------- */
 (async function(){
   buildMonthYear();
-  try{ if(hasStorage){ const r=await window.storage.get(THEME_KEY, false); if(r && r.value) applyTheme(r.value); } }catch(e){}
-  try{ if(hasStorage && !dashboard){ const r=await window.storage.get(DASH_KEY, false); if(r && r.value==="1"){ applyDash(true); activeId=null; } } }catch(e){}
+  try{ const r=localStorage.getItem(THEME_KEY); if(r) applyTheme(r); }catch(e){}
+  try{ if(!dashboard){ const r=localStorage.getItem(DASH_KEY); if(r==="1"){ applyDash(true); activeId=null; } } }catch(e){}
   await load();
   buildProfiles();
   renderCalendar();
 })();
 </script>
+
+</body>
+</html>
