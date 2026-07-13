@@ -426,6 +426,14 @@ function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",
 function firstName(n){return n.split(" ")[0];}
 function todayStr(){ const t=new Date(); return dateStr(t.getFullYear(),t.getMonth(),t.getDate()); }
 function dowOf(ds){ const [y,m,d]=ds.split("-").map(Number); return new Date(y,m-1,d).getDay(); }
+// Monday-anchored week key, used to limit each engineer to one primary per week
+function weekKey(ds){
+  const [y,m,d]=ds.split("-").map(Number);
+  const dt=new Date(y,m-1,d);
+  const dow=dt.getDay();                 // 0=Sun..6=Sat
+  dt.setDate(dt.getDate() + (dow===0?-6:1-dow));   // back up to Monday
+  return dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate());
+}
 function isOff(ds,id){ return (data.off[ds]||[]).includes(id); }
 
 /* ---------- top selectors ---------- */
@@ -496,6 +504,9 @@ function resolveMonth(y,m){
   const loadP={}, loadS={}, loadT={};
   const addP=id=>{ if(!id)return; loadP[id]=(loadP[id]||0)+1; loadT[id]=(loadT[id]||0)+1; };
   const addS=id=>{ if(!id)return; loadS[id]=(loadS[id]||0)+1; loadT[id]=(loadT[id]||0)+1; };
+  // one-primary-per-week tracking: weekKey -> Set of engineer ids already primary that week
+  const weekPrimary={};
+  const markWeek=(ds,id)=>{ if(!id)return; const k=weekKey(ds); (weekPrimary[k]||(weekPrimary[k]=new Set())).add(id); };
 
   // 1. seed frozen-past + pinned slots
   weekdays.forEach(ds=>{
@@ -504,23 +515,27 @@ function resolveMonth(y,m){
       let p=data.assign[ds].p||null, s=data.assign[ds].s||null;
       if(p&&!hasEng(p)) p=null; if(s&&!hasEng(s)) s=null;
       res[ds]={p,s,frozen:true,pinP:false,pinS:false};
-      addP(p); addS(s);
+      addP(p); addS(s); markWeek(ds,p);
     }else{
       let p=pinV(ds,"p"), s=pinV(ds,"s");
       if(p&&s&&p===s) s=null;
       res[ds]={p,s,frozen:false,pinP:!!p,pinS:!!s};
-      addP(p); addS(s);
+      addP(p); addS(s); markWeek(ds,p);
     }
   });
 
-  // 2. fill open primaries (most-constrained day first)
+  // 2. fill open primaries (most-constrained day first), avoiding a second primary
+  //    in the same week where possible
   weekdays.filter(ds=>!res[ds].frozen && !res[ds].p)
     .sort((a,b)=>(availCount[a]-availCount[b])||a.localeCompare(b))
     .forEach(ds=>{
-      const cands=avail(ds).filter(e=>e.id!==res[ds].s);
-      if(!cands.length){ res[ds].p=null; return; }
+      const pool=avail(ds).filter(e=>e.id!==res[ds].s);
+      if(!pool.length){ res[ds].p=null; return; }
+      const used=weekPrimary[weekKey(ds)];
+      const fresh=used ? pool.filter(e=>!used.has(e.id)) : pool;
+      const cands=fresh.length ? fresh : pool;   // fall back to a repeat only if unavoidable
       const pick=pickLeast(cands,loadP,loadT);
-      res[ds].p=pick.id; addP(pick.id);
+      res[ds].p=pick.id; addP(pick.id); markWeek(ds,pick.id);
     });
 
   // 3. fill open backups
