@@ -233,6 +233,44 @@
   .ctx-sep{height:1px;background:var(--line);margin:4px 6px}
   .ctx-info{padding:8px 10px 10px;font-size:13px;color:var(--muted);line-height:1.4}
 
+  /* Saturday availability lines inside a calendar cell */
+  .nm.avail{display:flex;align-items:baseline;gap:5px;color:var(--name);font-weight:600;white-space:nowrap}
+  .nm.avail.you{color:var(--accent);font-weight:700}
+  .nm.avail .avwin{font-family:'IBM Plex Mono';font-size:9px;font-weight:600;color:var(--muted);letter-spacing:.01em}
+  .nm.avail.you .avwin{color:var(--accent)}
+  .nm.moreline{font-family:'IBM Plex Mono';font-size:9.5px;color:var(--muted);font-weight:600}
+
+  /* Saturday sign-up dialog (reuses the .cd-* overlay shell) */
+  .sd-box{max-width:430px;max-height:86vh;overflow:auto}
+  .cd-save{background:var(--ink);color:var(--card);border-color:var(--ink)}
+  .cd-save:hover{opacity:.9}
+  .sd-list{border:1px solid var(--line);border-radius:11px;overflow:hidden;margin:0 0 12px}
+  .sd-person{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 12px;border-bottom:1px solid var(--line)}
+  .sd-person:last-child{border-bottom:none}
+  .sd-pname{font-family:'Inter';font-size:14px;font-weight:600;color:var(--ink)}
+  .sd-pname.you{color:var(--accent)}
+  .sd-pwin{font-family:'IBM Plex Mono';font-size:12.5px;color:var(--muted);font-weight:600}
+  .sd-empty{padding:14px 12px;font-size:13px;color:var(--muted)}
+  .sd-shift{border:1px solid var(--line);border-radius:11px;padding:12px 13px}
+  .sd-holder{font-size:13px;color:var(--muted);margin:0;line-height:1.45}
+  .sd-holder b{color:var(--ink)}
+  .sd-times{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:10px}
+  .sd-field{display:flex;flex-direction:column;gap:4px}
+  .sd-field label{font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .sd-timeparts{display:flex;gap:6px;align-items:center}
+  .sd-select{min-width:0;padding:8px 26px 8px 9px}
+  .sd-hh,.sd-mm{width:56px}
+  .sd-ap{width:66px}
+  .sd-note{font-size:11.5px;color:var(--muted);margin:8px 0 0;line-height:1.4}
+  .sd-btn-row{display:flex;gap:8px;margin-top:10px}
+  .sd-mini{font-family:'Inter';font-weight:600;font-size:13px;border-radius:8px;padding:8px 13px;cursor:pointer;
+    border:1px solid var(--line-strong);background:var(--card);color:var(--ink)}
+  .sd-mini.claim{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+  .sd-mini.release{border-color:var(--red-line);color:var(--red)}
+  .sd-mini:hover{filter:brightness(.97)}
+  .sd-err{display:none;font-size:12.5px;color:var(--red);font-weight:600;margin-top:9px;line-height:1.4}
+  .cd-btn:disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
+
   @media(max-width:620px){.cell{min-height:82px}.nm{font-size:10px}.legend{width:100%;margin-left:0}}
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -253,7 +291,7 @@
     </div>
     <div class="eyebrow">Production Ops · Second Shift <span class="dash-badge">View only</span></div>
     <h1>Coverage Calendar</h1>
-    <p class="sub">Weekdays are auto-assigned a <b>primary (★)</b> and a <b>backup</b>, split evenly across the team. Pick your name and click any day you <b>can't</b> cover — the month reshuffles itself. Weekends are optional: click a Saturday or Sunday to claim it (Sundays show as no-coverage by default).</p>
+    <p class="sub">Weekdays are auto-assigned a <b>primary (★)</b> and a <b>backup</b>, split evenly across the team. Pick your name and click any day you <b>can't</b> cover — the month reshuffles itself. Weekends are optional: click a Saturday to sign up with the hours you can work (several people can sign up and overlapping hours are fine); click a Sunday to claim it (Sundays show as no-coverage by default).</p>
   </header>
 
   <div class="controls">
@@ -307,7 +345,7 @@
 
   <div class="toolbar">
     <span class="count-pill" id="countPill"></span>
-    <span class="ver-tag">v3.2</span>
+    <span class="ver-tag">v4.0</span>
     <span class="spacer"></span>
     <button class="btn-tool" id="refreshBtn" title="Reload the latest shared schedule">↻ Refresh</button>
     <button class="btn-tool dash-hide" id="balanceBtn" title="Recompute this month's assignments">Re-assign month</button>
@@ -320,7 +358,7 @@
 
   <footer class="note">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#646c78" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-    <span>This calendar is <b>shared</b> — everyone sees and edits the same schedule, which lives in the database and persists across deploys. Every Mon–Fri is auto-assigned a <b>★ primary</b> and a <b>backup</b>, balanced evenly. Click a weekday to toggle whether <b>you can't cover</b> it; the whole month (today onward) reshuffles automatically to fill the gap. <b>Right-click or long-press</b> any day to lock yourself in as primary or backup — locked claims survive reshuffles (shown with a lock icon). <b>Weekends</b> aren't auto-assigned — Saturdays sit open and Sundays show as no-coverage by default (we don't normally run then) — but click either to claim it if a weekend shift comes up. Right-click a weekday or Saturday and choose <b>No coverage needed</b> to grey it out for holidays or shutdowns — it's skipped by balancing until you restore it. Past days stay frozen as a record. <b>Backup</b> downloads a full snapshot and <b>Restore</b> brings one back — handy before big changes.</span>
+    <span>This calendar is <b>shared</b> — everyone sees and edits the same schedule, which lives in the database and persists across deploys. Every Mon–Fri is auto-assigned a <b>★ primary</b> and a <b>backup</b>, balanced evenly. Click a weekday to toggle whether <b>you can't cover</b> it; the whole month (today onward) reshuffles automatically to fill the gap. <b>Right-click or long-press</b> any day to lock yourself in as primary or backup — locked claims survive reshuffles (shown with a lock icon). <b>Weekends</b> aren't auto-assigned. <b>Saturdays</b> are an open sign-up — click one to add the hours you can work; any number of people can sign up and overlapping hours are fine. Sundays show as no-coverage by default (we don't normally run then) — click one to claim it if a shift comes up. Right-click a weekday or Saturday and choose <b>No coverage needed</b> to grey it out for holidays or shutdowns — it's skipped by balancing until you restore it. Past days stay frozen as a record. <b>Backup</b> downloads a full snapshot and <b>Restore</b> brings one back — handy before big changes.</span>
   </footer>
 </div>
 
@@ -351,13 +389,44 @@ const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]; // Sunday-start
 const DEFAULT_ENGINEERS = ["Alan","Ricky","Brett","Jing","Abinay","Angel","James"];
 const LOCK_SVG = `<svg class="lockic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`;
 
+/* Saturday sign-up: an open availability list. Any number of engineers can add
+   themselves with the hours they can work; overlapping windows are fine. */
+const SAT_DAY = { start:"06:00", end:"22:00" };     // default window & picker bounds
+// "6:00" -> "6a", "14:30" -> "2:30p"
+function fmtTime(hhmm){
+  if(!hhmm) return "";
+  let [h,m]=hhmm.split(":").map(Number);
+  const ap=h<12?"a":"p"; let hh=h%12; if(hh===0) hh=12;
+  return m ? `${hh}:${pad(m)}${ap}` : `${hh}${ap}`;
+}
+// convert between stored 24h "HH:MM" and the {hour 1-12, minute, AM/PM} the dropdowns use
+function to12(hhmm){
+  let [h,m]=(hhmm||SAT_DAY.start).split(":").map(Number);
+  const ap=h<12?"AM":"PM"; let h12=h%12; if(h12===0) h12=12;
+  return {h:h12, m, ap};
+}
+function to24(h12,m,ap){ let h=h12%12; if(ap==="PM") h+=12; return `${pad(h)}:${pad(m)}`; }
+// keep a Saturday availability list clean: valid engineer, ordered from<to, one entry per person
+function normSat(list){
+  const out=[]; const seen=new Set();
+  (Array.isArray(list)?list:[]).forEach(e=>{
+    if(!e||!e.id||!hasEng(e.id)||seen.has(e.id)) return;
+    let from=e.from||SAT_DAY.start, to=e.to||SAT_DAY.end;
+    if(to<=from){ from=SAT_DAY.start; to=SAT_DAY.end; }
+    seen.add(e.id); out.push({id:e.id, from, to});
+  });
+  return out;
+}
+
 /* data model (shared/persisted)
    engineers : [{id,name}]
    off       : { "YYYY-MM-DD": [engineerId,...] }        who CAN'T cover that day
    pin       : { "YYYY-MM-DD": {p:id, s:id} }            manual locked claims (survive reshuffle; also used for Saturdays)
    assign    : { "YYYY-MM-DD": {p:id|null, s:id|null} }  resolved assignments (persisted so PAST days stay frozen)
-   skip      : { "YYYY-MM-DD": true }                    days marked "no coverage needed" — greyed, excluded from balancing */
-let data = { engineers:[], off:{}, pin:{}, assign:{}, skip:{} };
+   skip      : { "YYYY-MM-DD": true }                    days marked "no coverage needed" — greyed, excluded from balancing
+   sat       : { "YYYY-MM-DD": { s1:{id,from,to}|null,   Saturday only: 1st/2nd shift sign-ups. from/to = the hours that
+                                 s2:{id,from,to}|null } } person is available within the shift (a narrower window = a limit note) */
+let data = { engineers:[], off:{}, pin:{}, assign:{}, skip:{}, sat:{} };
 let activeId = null;                              // local: selected profile
 const now = new Date();
 let viewYear = now.getFullYear();
@@ -401,15 +470,43 @@ async function load(){
     if(dbRef){
       const snap = await dbRef.get();
       const p = snap.exists() ? snap.val() : null;
-      if(p) data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{} };
+      if(p) data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{}, sat:p.sat||{} };
+      migrateSaturdays();
       return;
     }
     const raw = localStorage.getItem(KEY);
     if(raw){
       const p = JSON.parse(raw);
-      data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{} };
+      data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{}, sat:p.sat||{} };
     }
+    migrateSaturdays();
   }catch(e){ console.warn("Load failed", e); }
+}
+/* Upgrade older data into the current Saturday availability-list form. Handles both
+   pre-v3 pins ({p,s}) and v3.3 shift objects ({s1,s2}). Overlapping/merged windows are
+   collapsed per person. Idempotent — arrays are left untouched. */
+function migrateSaturdays(){
+  if(!data.sat) data.sat={};
+  const add=(list,id,from,to)=>{ if(!id) return; const ex=list.find(x=>x.id===id);
+    if(ex){ if(from<ex.from) ex.from=from; if(to>ex.to) ex.to=to; } else list.push({id,from,to}); };
+  // 1. legacy Saturday pins -> availability list (old shift windows preserved)
+  if(data.pin) Object.keys(data.pin).forEach(k=>{
+    if(dowOf(k)!==6) return;
+    const src=data.pin[k]||{};
+    const list=Array.isArray(data.sat[k])?data.sat[k].slice():[];
+    if(src.p) add(list,src.p,"06:00","14:00");
+    if(src.s) add(list,src.s,"14:00","22:00");
+    if(list.length) data.sat[k]=list; else delete data.sat[k];
+    delete data.pin[k];
+  });
+  // 2. v3.3 shift objects {s1,s2} -> availability list
+  Object.keys(data.sat).forEach(k=>{
+    const v=data.sat[k];
+    if(Array.isArray(v)) return;
+    const list=[];
+    ["s1","s2"].forEach(sl=>{ const e=v&&v[sl]; if(e&&e.id) add(list,e.id, e.from||"06:00", e.to||"22:00"); });
+    if(list.length) data.sat[k]=list; else delete data.sat[k];
+  });
 }
 async function save(){
   try{
@@ -474,7 +571,7 @@ function buildProfiles(){
 function renderStatus(){
   const slot=document.getElementById("activeSlot");
   if(activeId){
-    slot.innerHTML=`<span class="active-tag"><span class="dot"></span>Editing as ${esc(nameOf(activeId))}</span> <span class="hint">— click a weekday you <b>can't</b> cover; click a Saturday or Sunday to claim it. Right-click (or long-press) to lock a primary/backup claim.</span>`;
+    slot.innerHTML=`<span class="active-tag"><span class="dot"></span>Editing as ${esc(nameOf(activeId))}</span> <span class="hint">— click a weekday you <b>can't</b> cover; click a <b>Saturday</b> to add the hours you can work; click a Sunday to claim it. Right-click (or long-press) to lock a claim.</span>`;
   }else{
     slot.innerHTML=`<span class="hint"><b>Summary view.</b> Choose your name above (or add a new engineer) to mark days off and claim shifts.</span>`;
   }
@@ -610,11 +707,11 @@ function resolveMonth(y,m){
       res[ds].s=pick.id; addS(pick.id);
     });
 
-  // 4. Saturdays & Sundays — pins only (Sundays default to no-coverage)
+  // 4. Saturdays — open availability list (any number of engineers, overlaps allowed)
   saturdays.forEach(ds=>{
-    let p=pinV(ds,"p"), s=pinV(ds,"s"); if(p&&s&&p===s) s=null;
-    res[ds]={p,s,sat:true,frozen:false,pinP:!!p,pinS:!!s};
+    res[ds]={sat:true, list:normSat(data.sat[ds]), p:null, s:null, frozen:false, pinP:false, pinS:false};
   });
+  // Sundays — pins only (default to no-coverage)
   sundays.forEach(ds=>{
     let p=pinV(ds,"p"), s=pinV(ds,"s"); if(p&&s&&p===s) s=null;
     res[ds]={p,s,sun:true,frozen:false,pinP:!!p,pinS:!!s};
@@ -661,6 +758,19 @@ function cellInner(cell,kind){       // kind: "" weekday, "sat", "sun"
   return `<div class="names">${rows}</div>`;
 }
 
+/* Saturday cell: one line per sign-up (name + the hours they can work). */
+function satInner(cell){
+  const list=(cell.list||[]).slice().sort((a,b)=> a.from.localeCompare(b.from) || firstName(nameOf(a.id)).localeCompare(firstName(nameOf(b.id))));
+  if(!list.length) return `<div class="names"><span class="optional">open — click to sign up</span></div>`;
+  const MAX=3;
+  const rows=list.slice(0,MAX).map(e=>{
+    const you=e.id===activeId;
+    return `<span class="nm avail ${you?"you":""}">${esc(firstName(nameOf(e.id)))}<span class="avwin">${fmtTime(e.from)}–${fmtTime(e.to)}</span></span>`;
+  });
+  if(list.length>MAX) rows.push(`<span class="nm moreline">+${list.length-MAX} more</span>`);
+  return `<div class="names">${rows.join("")}</div>`;
+}
+
 function renderCalendar(){
   document.getElementById("dow").innerHTML =
     DOW.map(d=>`<div class="${d==="Sun"?"sun":""}">${d}</div>`).join("");
@@ -682,12 +792,13 @@ function renderCalendar(){
     const past = ds<tStr;
     const editable = activeId && !dashboard && !past && !skipped;
     const iamoff = activeId && isWeekday && !skipped && isOff(ds,activeId);
-    const mine = activeId && cell && !skipped && (cell.p===activeId||cell.s===activeId);
+    const satMine = isSat && cell && (cell.list||[]).some(e=>e.id===activeId);
+    const mine = activeId && cell && !skipped && (cell.p===activeId||cell.s===activeId||satMine);
 
     let cls="cell workday";
     if(skipped) cls="cell closed";
     else if(isSun) cls += (cell&&cell.p) ? " covered" : " sun-open";
-    else if(isSat) cls += (cell&&cell.p) ? " covered" : " sat-open";
+    else if(isSat) cls += (cell&&cell.list&&cell.list.length) ? " covered" : " sat-open";
     else cls += (cell.p&&cell.s) ? " covered" : (cell.p ? " needs2" : " uncov-week");
     if(mine) cls+=" mine";
     if(iamoff) cls+=" offday";
@@ -697,8 +808,9 @@ function renderCalendar(){
 
     let inner="", primTop="";
     if(skipped){ inner=`<div class="names"><span class="closed-label">no coverage</span></div>`; }
+    else if(isSat){ inner = satInner(cell); }
     else{
-      inner = cellInner(cell, isSun?"sun":(isSat?"sat":""));
+      inner = cellInner(cell, isSun?"sun":"");
       if(cell.p) primTop=`<span class="prim-top ${cell.pinP?"locked":""}">${esc(firstName(nameOf(cell.p)))}</span>`;
     }
     const attr = ` data-ds="${ds}"${editable?' role="button" tabindex="0"':''}`;
@@ -717,8 +829,9 @@ function renderCalendar(){
     const act=()=>{
       if(data.skip[ds]){ toast("This day is marked no-coverage — right-click to restore it"); return; }
       if(ds<tStr){ return; }                       // past days are locked
+      if(dw===6){ openSaturdayDialog(ds); return; }
       if(!activeId){ toast("Choose your name first"); return; }
-      (dw===0||dw===6) ? claimToggle(ds) : toggleOff(ds);
+      (dw===0) ? claimToggle(ds) : toggleOff(ds);
     };
     el.addEventListener("click",()=>{ if(suppressClick){suppressClick=false;return;} act(); });
     el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault(); act();} });
@@ -786,7 +899,7 @@ async function toggleOff(ds){
   await commitAndSave(i>=0 ? `You can cover ${prettyDate(ds)} again` : `Marked off ${prettyDate(ds)} — month reshuffled`);
 }
 
-async function claimToggle(ds){        // click-to-claim for Saturdays and Sundays
+async function claimToggle(ds){        // click-to-claim for Sundays (Saturdays use openSaturdayDialog)
   if(!activeId) return;
   await load();
   const pin=Object.assign({}, data.pin[ds]);
@@ -819,6 +932,141 @@ async function releaseSlot(ds,slot){
     if(!data.pin[ds].p && !data.pin[ds].s) delete data.pin[ds];
   }
   await commitAndSave(`Released ${slot==="p"?"primary":"backup"} claim for ${prettyDate(ds)}`);
+}
+
+/* Remove the current engineer's Saturday sign-up. */
+async function satRemoveMe(ds){
+  if(!activeId) return;
+  await load();
+  const arr = normSat(data.sat[ds]).filter(e=>e.id!==activeId);
+  if(arr.length) data.sat[ds]=arr; else delete data.sat[ds];
+  await commitAndSave(`Removed your ${prettyDate(ds)} sign-up`);
+}
+
+/* Saturday sign-up: open availability. Anyone can add themselves with the hours they can
+   work; multiple people and overlapping windows are fine. You only edit your own entry;
+   on save it merges into the latest shared list so concurrent sign-ups aren't lost. */
+async function openSaturdayDialog(ds){
+  if(dashboard) return;
+  if(ds<todayStr()){ toast("Past Saturdays are locked as a record"); return; }
+  if(data.skip[ds]){ toast("This day is marked no-coverage — right-click to restore it"); return; }
+  await load();                                   // show the latest shared state
+  const existing = normSat(data.sat[ds]).find(e=>e.id===activeId) || null;
+  let mine = existing ? {from:existing.from, to:existing.to} : null;   // working copy of MY entry only
+
+  const ov=document.createElement("div"); ov.className="cd-overlay";
+  const box=document.createElement("div"); box.className="cd-box sd-box";
+  const h=document.createElement("p"); h.className="cd-msg"; h.style.marginBottom="6px";
+  h.innerHTML=`<b>${prettyDate(ds)} — Saturday availability</b>`;
+  box.appendChild(h);
+  const intro=document.createElement("div"); intro.className="ctx-info"; intro.style.padding="0 0 14px";
+  intro.textContent="Anyone can sign up with the hours they can work. Multiple people and overlapping hours are fine.";
+  box.appendChild(intro);
+
+  const body=document.createElement("div"); box.appendChild(body);
+  const done=v=>{ document.removeEventListener("keydown",onKey); ov.remove(); if(v) v(); };
+
+  function render(){
+    body.innerHTML="";
+    ok.disabled=false;                              // re-enabled unless the editor flags an invalid window
+    // roster of everyone signed up (latest others + my working entry)
+    const others = normSat(data.sat[ds]).filter(e=>e.id!==activeId);
+    const roster = others.concat(mine?[{id:activeId, from:mine.from, to:mine.to}]:[])
+      .sort((a,b)=> a.from.localeCompare(b.from) || firstName(nameOf(a.id)).localeCompare(firstName(nameOf(b.id))));
+    const list=document.createElement("div"); list.className="sd-list";
+    if(!roster.length){
+      const em=document.createElement("div"); em.className="sd-empty"; em.textContent="No one has signed up yet.";
+      list.appendChild(em);
+    }else{
+      roster.forEach(e=>{
+        const row=document.createElement("div"); row.className="sd-person";
+        const you=e.id===activeId;
+        row.innerHTML=`<span class="sd-pname ${you?"you":""}">${esc(firstName(nameOf(e.id)))}${you?" (you)":""}</span>`
+          +`<span class="sd-pwin">${fmtTime(e.from)}–${fmtTime(e.to)}</span>`;
+        list.appendChild(row);
+      });
+    }
+    body.appendChild(list);
+
+    // my editor
+    const editor=document.createElement("div"); editor.className="sd-shift";
+    if(!activeId){
+      const p=document.createElement("div"); p.className="sd-holder"; p.textContent="Select your name at the top to add your hours.";
+      editor.appendChild(p);
+    }else if(!mine){
+      const p=document.createElement("div"); p.className="sd-holder"; p.innerHTML="<b>You're not signed up.</b> Add the hours you can work:";
+      editor.appendChild(p);
+      const row=document.createElement("div"); row.className="sd-btn-row";
+      const b=document.createElement("button"); b.className="sd-mini claim"; b.textContent="+ Add me";
+      b.onclick=()=>{ mine={from:SAT_DAY.start, to:SAT_DAY.end}; render(); };
+      row.appendChild(b); editor.appendChild(row);
+    }else{
+      const p=document.createElement("div"); p.className="sd-holder"; p.innerHTML="<b>Your hours.</b> Set the window you can work this Saturday.";
+      editor.appendChild(p);
+      const times=document.createElement("div"); times.className="sd-times";
+      const mkField=(lbl,val,on)=>{
+        const f=document.createElement("div"); f.className="sd-field";
+        const l=document.createElement("label"); l.textContent=lbl;
+        const row=document.createElement("div"); row.className="sd-timeparts";
+        const cur=to12(val);
+        const hSel=document.createElement("select"); hSel.className="sd-select sd-hh";
+        hSel.innerHTML=Array.from({length:12},(_,i)=>i+1).map(h=>`<option value="${h}">${h}</option>`).join("");
+        hSel.value=cur.h;
+        const mSel=document.createElement("select"); mSel.className="sd-select sd-mm";
+        let mins=[0,15,30,45]; if(!mins.includes(cur.m)){ mins=mins.concat(cur.m).sort((a,b)=>a-b); }
+        mSel.innerHTML=mins.map(m=>`<option value="${m}">${pad(m)}</option>`).join("");
+        mSel.value=cur.m;
+        const apSel=document.createElement("select"); apSel.className="sd-select sd-ap";
+        apSel.innerHTML=`<option value="AM">AM</option><option value="PM">PM</option>`;
+        apSel.value=cur.ap;
+        const emit=()=>on(to24(+hSel.value, +mSel.value, apSel.value));
+        hSel.onchange=mSel.onchange=apSel.onchange=emit;
+        row.append(hSel, mSel, apSel);
+        f.append(l,row); return f;
+      };
+      const errEl=document.createElement("div"); errEl.className="sd-err"; errEl.setAttribute("role","alert");
+      const checkValid=()=>{
+        const bad = !!(mine && mine.to<=mine.from);
+        errEl.textContent = bad ? `"Until" must be later than the start time — you have ${fmtTime(mine.from)}–${fmtTime(mine.to)}.` : "";
+        errEl.style.display = bad ? "block" : "none";
+        ok.disabled = bad;
+      };
+      times.appendChild(mkField("Available from", mine.from, v=>{ mine.from=v||SAT_DAY.start; checkValid(); }));
+      times.appendChild(mkField("Until", mine.to, v=>{ mine.to=v||SAT_DAY.end; checkValid(); }));
+      editor.appendChild(times);
+      editor.appendChild(errEl);
+      const row=document.createElement("div"); row.className="sd-btn-row";
+      const rel=document.createElement("button"); rel.className="sd-mini release"; rel.textContent="Remove me";
+      rel.onclick=()=>{ mine=null; render(); };
+      row.appendChild(rel); editor.appendChild(row);
+      checkValid();
+    }
+    body.appendChild(editor);
+  }
+  const actions=document.createElement("div"); actions.className="cd-actions";
+  const cancel=document.createElement("button"); cancel.className="cd-btn cd-cancel"; cancel.textContent="Cancel";
+  const ok=document.createElement("button"); ok.className="cd-btn cd-save"; ok.textContent="Save";
+  actions.append(cancel, ok); box.appendChild(actions);
+  render();                                        // build body; disables Save if the window is invalid
+  ov.appendChild(box); document.body.appendChild(ov);
+
+  function onKey(e){ if(e.key==="Escape") done(null); }
+  document.addEventListener("keydown",onKey);
+  ov.addEventListener("mousedown",e=>{ if(e.target===ov) done(null); });
+  cancel.onclick=()=>done(null);
+  ok.onclick=()=>done(async()=>{
+    await load();                                   // merge into the freshest shared list
+    let arr = normSat(data.sat[ds]).filter(e=>e.id!==activeId);
+    if(activeId && mine){
+      let {from,to}=mine; if(!from) from=SAT_DAY.start; if(!to) to=SAT_DAY.end;
+      if(to<=from){ from=SAT_DAY.start; to=SAT_DAY.end; }
+      arr.push({id:activeId, from, to});
+    }
+    arr = normSat(arr);
+    if(arr.length) data.sat[ds]=arr; else delete data.sat[ds];
+    await commitAndSave(`${prettyDate(ds)} availability updated`);
+  });
+  ok.focus();
 }
 
 async function skipDay(ds){
@@ -876,8 +1124,12 @@ function openMenu(ds, x, y){
     addInfo("Past days are locked as a record.");
     if(offerSkip){ addSep(); addItem("No coverage needed","Greys the day out; skipped by balancing",()=>skipDay(ds)); }
   }else{
-    // person-specific actions need a selected name
-    if(!activeId){
+    if(isSat){
+      // Saturdays: open availability sign-up (its own dialog)
+      const signedUp = normSat(data.sat[ds]).some(e=>e.id===activeId);
+      addItem("Sign up / edit hours…", activeId?"Add the hours you can work":"View who's available",()=>openSaturdayDialog(ds));
+      if(signedUp) addItem("Remove my sign-up","Takes you off this Saturday",()=>satRemoveMe(ds));
+    }else if(!activeId){
       addInfo(isSun ? "Select your name to claim this Sunday." : "Select your name to mark yourself off or claim shifts.");
     }else{
       if(isWeekday){
@@ -944,6 +1196,7 @@ document.getElementById("removeProfile").addEventListener("click",async()=>{
   Object.keys(data.off).forEach(k=>{ data.off[k]=data.off[k].filter(x=>x!==id); if(!data.off[k].length) delete data.off[k]; });
   Object.keys(data.pin).forEach(k=>{ if(data.pin[k].p===id) delete data.pin[k].p; if(data.pin[k].s===id) delete data.pin[k].s; if(!data.pin[k].p&&!data.pin[k].s) delete data.pin[k]; });
   Object.keys(data.assign).forEach(k=>{ if(data.assign[k].p===id) data.assign[k].p=null; if(data.assign[k].s===id) data.assign[k].s=null; if(!data.assign[k].p&&!data.assign[k].s) delete data.assign[k]; });
+  Object.keys(data.sat).forEach(k=>{ if(Array.isArray(data.sat[k])){ data.sat[k]=data.sat[k].filter(e=>e.id!==id); if(!data.sat[k].length) delete data.sat[k]; } });
   activeId=null;
   await commitAndSave(`Removed ${nm}`);
   buildProfiles();
@@ -988,12 +1241,18 @@ function exportCSV(){
     const ds=dateStr(viewYear,viewMonth,d);
     if(data.skip[ds]){ rows.push([ds, DOW[dowIdx], "", "", "No coverage needed"]); continue; }
     const c=res[ds]; const isSat=dowIdx===6, isSun=dowIdx===0;
+    if(isSat){
+      const list=(c.list||[]).slice().sort((a,b)=>a.from.localeCompare(b.from));
+      const txt=list.map(e=>`${nameOf(e.id)} ${fmtTime(e.from)}–${fmtTime(e.to)}`).join("; ");
+      const status = list.length ? `Saturday — ${list.length} available` : "Saturday — no sign-ups";
+      rows.push([ds, DOW[dowIdx], txt, "", status]);
+      continue;
+    }
     if(isSun && !(c&&c.p)) continue;                 // omit unclaimed Sundays
     const pTxt=c.p?(nameOf(c.p)+(c.pinP?" (claimed)":"")):"";
     const sTxt=c.s?(nameOf(c.s)+(c.pinS?" (claimed)":"")):"";
     let status;
     if(isSun) status = "Sunday covered";
-    else if(isSat) status = c.p ? "Saturday covered" : "Saturday optional";
     else status = (c.p&&c.s) ? "Covered" : (c.p ? "Needs backup" : "Uncovered");
     rows.push([ds, DOW[dowIdx], pTxt, sTxt, status]);
   }
@@ -1020,7 +1279,7 @@ function downloadFile(filename, text, type){
 }
 function backupData(){
   const stamp=`${viewYear}-${pad(viewMonth+1)}-${pad(new Date().getDate())}`;
-  const payload=JSON.stringify({ version:2, savedAt:new Date().toISOString(), data }, null, 2);
+  const payload=JSON.stringify({ version:4, savedAt:new Date().toISOString(), data }, null, 2);
   downloadFile(`second-shift-backup-${stamp}.json`, payload, "application/json");
   toast("Backup downloaded — keep this file safe");
 }
@@ -1031,7 +1290,8 @@ async function restoreData(file){
   const d = parsed && parsed.data ? parsed.data : parsed;
   if(!d || typeof d!=="object" || !Array.isArray(d.engineers)){ toast("That doesn't look like a schedule backup"); return; }
   if(!(await confirmDialog("Restore this backup? It replaces the entire current schedule for everyone.", "Restore backup"))) return;
-  data = { engineers:d.engineers||[], off:d.off||{}, pin:d.pin||{}, assign:d.assign||{}, skip:d.skip||{} };
+  data = { engineers:d.engineers||[], off:d.off||{}, pin:d.pin||{}, assign:d.assign||{}, skip:d.skip||{}, sat:d.sat||{} };
+  migrateSaturdays();                  // upgrade any pre-v3 backup that still holds Saturdays in pin
   await save();
   await refreshBoard(false);
   toast("Backup restored");
@@ -1050,6 +1310,7 @@ async function clearMonth(){
     const ds=dateStr(viewYear,viewMonth,d); keys.push(ds);
     (data.off[ds]||[]).forEach(id=>presentIds.add(id));
     if(data.pin[ds]){ if(data.pin[ds].p) presentIds.add(data.pin[ds].p); if(data.pin[ds].s) presentIds.add(data.pin[ds].s); }
+    if(Array.isArray(data.sat[ds])) data.sat[ds].forEach(e=>presentIds.add(e.id));
   }
   const engineersInMonth=data.engineers.filter(e=>presentIds.has(e.id)).sort((a,b)=>a.name.localeCompare(b.name));
   const choice=await clearScopeDialog(`${MONTHS[viewMonth]} ${viewYear}`, engineersInMonth);
@@ -1058,11 +1319,12 @@ async function clearMonth(){
   await load();
   keys.forEach(ds=>{
     if(choice==="__all__"){
-      delete data.off[ds]; delete data.pin[ds]; delete data.assign[ds]; delete data.skip[ds];
+      delete data.off[ds]; delete data.pin[ds]; delete data.assign[ds]; delete data.skip[ds]; delete data.sat[ds];
     }else{
       if(data.off[ds]){ data.off[ds]=data.off[ds].filter(id=>id!==choice); if(!data.off[ds].length) delete data.off[ds]; }
       if(data.pin[ds]){ if(data.pin[ds].p===choice) delete data.pin[ds].p; if(data.pin[ds].s===choice) delete data.pin[ds].s; if(!data.pin[ds].p&&!data.pin[ds].s) delete data.pin[ds]; }
       if(data.assign[ds]){ if(data.assign[ds].p===choice) data.assign[ds].p=null; if(data.assign[ds].s===choice) data.assign[ds].s=null; if(!data.assign[ds].p&&!data.assign[ds].s) delete data.assign[ds]; }
+      if(Array.isArray(data.sat[ds])){ data.sat[ds]=data.sat[ds].filter(e=>e.id!==choice); if(!data.sat[ds].length) delete data.sat[ds]; }
     }
   });
   await commitAndSave(choice==="__all__" ? `Reset ${MONTHS[viewMonth]} — freshly auto-assigned` : `Cleared ${nameOf(choice)} from ${MONTHS[viewMonth]}`);
