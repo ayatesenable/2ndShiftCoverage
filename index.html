@@ -42,7 +42,7 @@
   .eyebrow::before{content:"";width:22px;height:2px;background:var(--accent)}
   h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(26px,4vw,38px);
     letter-spacing:-.02em;margin:0 0 6px;line-height:1.05}
-  .sub{color:var(--muted);max-width:64ch;margin:0}
+  .sub{color:var(--muted);margin:0}
   header{position:relative;padding-right:96px}
   .head-actions{position:absolute;top:0;right:0;display:flex;gap:8px}
   .icon-btn{width:40px;height:40px;border-radius:10px;border:1px solid var(--line-strong);background:var(--card);
@@ -193,7 +193,28 @@
   [data-theme="dark"] .btn-danger{color:#ff7070;border-color:#5c2d30}
   [data-theme="dark"] .btn-danger:hover{background:#2a1719;border-color:#ff7070}
 
-  footer.note{margin-top:18px;color:var(--muted);font-size:12.5px;display:flex;gap:8px;align-items:flex-start;max-width:820px}
+  /* actions dropdown (condenses the admin buttons) */
+  .menu-wrap{position:relative;display:inline-flex}
+  .menu-caret{margin-left:5px;font-size:10px;opacity:.8}
+  .menu-pop{position:absolute;top:calc(100% + 6px);right:0;z-index:120;min-width:200px;background:var(--card);
+    border:1px solid var(--line-strong);border-radius:11px;box-shadow:var(--shadow);padding:6px;display:none}
+  .menu-pop.open{display:block}
+  .menu-pop button{display:block;width:100%;text-align:left;background:none;border:none;padding:9px 11px;
+    border-radius:8px;cursor:pointer;color:var(--ink);font-family:'Inter';font-size:13.5px;font-weight:600}
+  .menu-pop button:hover{background:var(--accent-soft)}
+  .menu-pop .mp-sep{height:1px;background:var(--line);margin:5px 6px}
+  .menu-pop .mp-danger{color:#b23b3b}
+  .menu-pop .mp-danger:hover{background:#fdf3f3}
+  [data-theme="dark"] .menu-pop .mp-danger{color:#ff7070}
+  [data-theme="dark"] .menu-pop .mp-danger:hover{background:#2a1719}
+  #menuBtn[aria-expanded="true"]{border-color:var(--ink)}
+  @media(max-width:620px){
+    .menu-wrap{width:100%}
+    #menuBtn{width:100%}
+    .menu-pop{left:0;right:0;min-width:0}
+  }
+
+  footer.note{margin-top:18px;color:var(--muted);font-size:12.5px;display:flex;gap:8px;align-items:flex-start}
   footer.note svg{flex:none;margin-top:2px}
   footer.note b{color:var(--footer-b)}
   .ver-tag{font-family:'IBM Plex Mono';font-size:11px;letter-spacing:.05em;color:var(--muted);opacity:.75;align-self:center}
@@ -291,7 +312,7 @@
     </div>
     <div class="eyebrow">Production Ops · Second Shift <span class="dash-badge">View only</span></div>
     <h1>Coverage Calendar</h1>
-    <p class="sub">Weekdays are auto-assigned a <b>primary (★)</b> and a <b>backup</b>, split evenly across the team. Pick your name and click any day you <b>can't</b> cover — the month reshuffles itself. Weekends are optional: click a Saturday to sign up with the hours you can work (several people can sign up and overlapping hours are fine); click a Sunday to claim it (Sundays show as no-coverage by default).</p>
+    <p class="sub">Weekdays are auto-assigned a <b>primary (★)</b> and a <b>backup</b>, split evenly across the team. Pick your name and click any day you <b>can't</b> cover — the month reshuffles itself. Weekends are optional: click a Saturday to sign up with the hours you can work (several people can sign up and overlapping hours are fine); click a Sunday to claim it (Sundays show as no-coverage by default). Need someone on a fixed rhythm? Use <b>Coverage rules</b> to guarantee an engineer a set number of ★ primary days each week.</p>
   </header>
 
   <div class="controls">
@@ -345,20 +366,27 @@
 
   <div class="toolbar">
     <span class="count-pill" id="countPill"></span>
-    <span class="ver-tag">v4.0</span>
+    <span class="ver-tag">v5.0</span>
     <span class="spacer"></span>
     <button class="btn-tool" id="refreshBtn" title="Reload the latest shared schedule">↻ Refresh</button>
-    <button class="btn-tool dash-hide" id="balanceBtn" title="Recompute this month's assignments">Re-assign month</button>
-    <button class="btn-tool dash-hide" id="csvBtn">Export CSV</button>
-    <button class="btn-tool dash-hide" id="backupBtn" title="Download all data as a backup file">Backup</button>
-    <button class="btn-tool dash-hide" id="restoreBtn" title="Restore data from a backup file">Restore</button>
-    <button class="btn-tool btn-danger dash-hide" id="clearMonthBtn">Reset this month</button>
+    <div class="menu-wrap dash-hide">
+      <button class="btn-tool" id="menuBtn" aria-haspopup="true" aria-expanded="false" title="Schedule actions">Actions<span class="menu-caret">▾</span></button>
+      <div class="menu-pop" id="menuPop" role="menu">
+        <button id="miBalance" role="menuitem" title="Recompute this month's assignments">Re-assign month</button>
+        <button id="miRules" role="menuitem" title="Set guaranteed weekly primary days per engineer">Coverage rules</button>
+        <button id="miCsv" role="menuitem">Export CSV</button>
+        <button id="miBackup" role="menuitem" title="Download all data as a backup file">Backup</button>
+        <button id="miRestore" role="menuitem" title="Restore data from a backup file">Restore</button>
+        <div class="mp-sep"></div>
+        <button id="miClear" role="menuitem" class="mp-danger">Reset this month</button>
+      </div>
+    </div>
   </div>
   <input type="file" id="restoreFile" accept="application/json,.json" style="display:none" />
 
   <footer class="note">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#646c78" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-    <span>This calendar is <b>shared</b> — everyone sees and edits the same schedule, which lives in the database and persists across deploys. Every Mon–Fri is auto-assigned a <b>★ primary</b> and a <b>backup</b>, balanced evenly. Click a weekday to toggle whether <b>you can't cover</b> it; the whole month (today onward) reshuffles automatically to fill the gap. <b>Right-click or long-press</b> any day to lock yourself in as primary or backup — locked claims survive reshuffles (shown with a lock icon). <b>Weekends</b> aren't auto-assigned. <b>Saturdays</b> are an open sign-up — click one to add the hours you can work; any number of people can sign up and overlapping hours are fine. Sundays show as no-coverage by default (we don't normally run then) — click one to claim it if a shift comes up. Right-click a weekday or Saturday and choose <b>No coverage needed</b> to grey it out for holidays or shutdowns — it's skipped by balancing until you restore it. Past days stay frozen as a record. <b>Backup</b> downloads a full snapshot and <b>Restore</b> brings one back — handy before big changes.</span>
+    <span>This calendar is <b>shared</b> — everyone sees and edits the same schedule, which lives in the database and persists across deploys. Every Mon–Fri is auto-assigned a <b>★ primary</b> and a <b>backup</b>, balanced evenly. Click a weekday to toggle whether <b>you can't cover</b> it; the whole month (today onward) reshuffles automatically to fill the gap. <b>Right-click or long-press</b> any day to lock yourself in as primary or backup — locked claims survive reshuffles (shown with a lock icon). <b>Weekends</b> aren't auto-assigned. <b>Saturdays</b> are an open sign-up — click one to add the hours you can work; any number of people can sign up and overlapping hours are fine. Sundays show as no-coverage by default (we don't normally run then) — click one to claim it if a shift comes up. Right-click a weekday or Saturday and choose <b>No coverage needed</b> to grey it out for holidays or shutdowns — it's skipped by balancing until you restore it. Past days stay frozen as a record. <b>Backup</b> downloads a full snapshot and <b>Restore</b> brings one back — handy before big changes. <b>Coverage rules</b> lets you guarantee an engineer a set number of ★ primary days each week (spread out, back-to-back allowed only for them, never on days they've marked off).</span>
   </footer>
 </div>
 
@@ -425,8 +453,10 @@ function normSat(list){
    assign    : { "YYYY-MM-DD": {p:id|null, s:id|null} }  resolved assignments (persisted so PAST days stay frozen)
    skip      : { "YYYY-MM-DD": true }                    days marked "no coverage needed" — greyed, excluded from balancing
    sat       : { "YYYY-MM-DD": { s1:{id,from,to}|null,   Saturday only: 1st/2nd shift sign-ups. from/to = the hours that
-                                 s2:{id,from,to}|null } } person is available within the shift (a narrower window = a limit note) */
-let data = { engineers:[], off:{}, pin:{}, assign:{}, skip:{}, sat:{} };
+                                 s2:{id,from,to}|null } } person is available within the shift (a narrower window = a limit note)
+   committed : { enabled:bool, targets:{ engineerId:N } }  guaranteed weekly PRIMARY days per engineer
+                                                          (adjacency-exempt, soft-spread, capped at availability) */
+let data = { engineers:[], off:{}, pin:{}, assign:{}, skip:{}, sat:{}, committed:{enabled:false, targets:{}} };
 let activeId = null;                              // local: selected profile
 const now = new Date();
 let viewYear = now.getFullYear();
@@ -470,14 +500,14 @@ async function load(){
     if(dbRef){
       const snap = await dbRef.get();
       const p = snap.exists() ? snap.val() : null;
-      if(p) data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{}, sat:p.sat||{} };
+      if(p) data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{}, sat:p.sat||{}, committed:normCommitted(p.committed) };
       migrateSaturdays();
       return;
     }
     const raw = localStorage.getItem(KEY);
     if(raw){
       const p = JSON.parse(raw);
-      data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{}, sat:p.sat||{} };
+      data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{}, sat:p.sat||{}, committed:normCommitted(p.committed) };
     }
     migrateSaturdays();
   }catch(e){ console.warn("Load failed", e); }
@@ -507,6 +537,14 @@ function migrateSaturdays(){
     ["s1","s2"].forEach(sl=>{ const e=v&&v[sl]; if(e&&e.id) add(list,e.id, e.from||"06:00", e.to||"22:00"); });
     if(list.length) data.sat[k]=list; else delete data.sat[k];
   });
+}
+/* normalize the committed-coverage config from any stored/backup shape */
+function normCommitted(c){
+  const out={ enabled:!!(c&&c.enabled), targets:{} };
+  if(c&&c.targets&&typeof c.targets==="object"){
+    Object.keys(c.targets).forEach(id=>{ const n=parseInt(c.targets[id],10); if(n>0) out.targets[id]=Math.min(5,n); });
+  }
+  return out;
 }
 async function save(){
   try{
@@ -588,6 +626,31 @@ function pickLeast(cands, loadA, loadT){
     (rosterIndex(a.id)-rosterIndex(b.id))      // then follow the roster order
   )[0];
 }
+/* Choose `k` days from `cand` (all within one week) to be as spread out across the
+   week as possible. Deterministic so a person's committed days stay stable between
+   recomputes: prefer the largest minimum gap, then the widest span, then earliest.
+   Returns fewer than k only when cand is smaller (caps at what's available). */
+function pickSpread(cand, k){
+  const days = cand.slice().sort();                 // chronological
+  if(k<=0) return [];
+  if(k>=days.length) return days;
+  const pos = days.map(ds=>dowOf(ds));              // 1..5 (Mon..Fri)
+  const combos=[];
+  (function choose(start, acc){
+    if(acc.length===k){ combos.push(acc.slice()); return; }
+    for(let i=start;i<days.length;i++){ acc.push(i); choose(i+1,acc); acc.pop(); }
+  })(0,[]);
+  const score = combo => {
+    const ps=combo.map(i=>pos[i]);
+    let minGap=99; for(let i=1;i<ps.length;i++) minGap=Math.min(minGap, ps[i]-ps[i-1]);
+    return { minGap, span: ps[ps.length-1]-ps[0], key: combo.join(",") };
+  };
+  combos.sort((a,b)=>{
+    const sa=score(a), sb=score(b);
+    return (sb.minGap-sa.minGap) || (sb.span-sa.span) || sa.key.localeCompare(sb.key);
+  });
+  return combos[0].map(i=>days[i]);
+}
 
 /* Resolve a whole month deterministically.
    - Past weekdays: frozen from data.assign (fall back to fresh compute if none stored).
@@ -635,6 +698,31 @@ function resolveMonth(y,m){
     }
   });
 
+  // 1b. committed coverage — guaranteed weekly PRIMARY days for toggled engineers.
+  //     These are pinned before the general fill and marked ruleP so the balance-repair
+  //     pass leaves them alone. Committed placements are adjacency-EXEMPT (the toggled
+  //     engineer may land back-to-back), chosen soft-spread across the week, and never
+  //     on a day they've marked off. The count caps at the days actually available, so a
+  //     heavily-blocked week simply yields fewer than the target.
+  if(data.committed && data.committed.enabled){
+    const targets = data.committed.targets || {};
+    const byWeek={};
+    weekdays.forEach(ds=>{ if(res[ds].frozen) return; (byWeek[weekKey(ds)]||(byWeek[weekKey(ds)]=[])).push(ds); });
+    engs.filter(e=>(targets[e.id]|0)>0)
+        .sort((a,b)=>rosterIndex(a.id)-rosterIndex(b.id))   // deterministic order
+        .forEach(e=>{
+      const target=targets[e.id]|0;
+      Object.keys(byWeek).sort().forEach(wk=>{
+        let have=0;                                          // days already primary this week (pins/frozen count)
+        weekdays.forEach(ds=>{ if(weekKey(ds)===wk && res[ds].p===e.id) have++; });
+        const need=target-have;
+        if(need<=0) return;
+        const cand=byWeek[wk].filter(ds=> !res[ds].p && !isOff(ds,e.id) && res[ds].s!==e.id);
+        pickSpread(cand, need).forEach(ds=>{ res[ds].p=e.id; res[ds].ruleP=true; addP(e.id); markWeek(ds,e.id); });
+      });
+    });
+  }
+
   // 2. fill open primaries (most-constrained day first). Two hard/soft rules:
   //    HARD  — never primary on two adjacent weekdays (back-to-back), relaxed only if a
   //            day would otherwise be uncovered.
@@ -674,7 +762,7 @@ function resolveMonth(y,m){
       if(maxL-minL<=1) break;
       const sources=engs.filter(e=>load(e.id)===maxL).map(e=>e.id);
       const sinks=new Set(engs.filter(e=>load(e.id)===minL).map(e=>e.id));
-      const movable=weekdays.filter(ds=>!res[ds].frozen && !res[ds].pinP && res[ds].p);
+      const movable=weekdays.filter(ds=>!res[ds].frozen && !res[ds].pinP && !res[ds].ruleP && res[ds].p);
       // BFS over engineers; edge X->Y (witness day d) means X holds movable day d and Y can take it
       const prev={}; const seen=new Set(sources); const q=[...sources]; let sink=null;
       while(q.length){
@@ -1228,7 +1316,7 @@ async function reassignMonth(){
     .map(id=>`${firstName(nameOf(id))}·${r.loadP[id]}`).join("  ");
   toast(`Re-assigned ${MONTHS[viewMonth]}${spread?` — primaries: ${spread}`:""}`);
 }
-document.getElementById("balanceBtn").addEventListener("click",reassignMonth);
+document.getElementById("miBalance").addEventListener("click",reassignMonth);
 
 /* ---------- export ---------- */
 function exportCSV(){
@@ -1266,7 +1354,7 @@ function exportCSV(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   toast("CSV downloaded");
 }
-document.getElementById("csvBtn").addEventListener("click",exportCSV);
+document.getElementById("miCsv").addEventListener("click",exportCSV);
 
 /* ---------- backup / restore ---------- */
 function downloadFile(filename, text, type){
@@ -1290,14 +1378,14 @@ async function restoreData(file){
   const d = parsed && parsed.data ? parsed.data : parsed;
   if(!d || typeof d!=="object" || !Array.isArray(d.engineers)){ toast("That doesn't look like a schedule backup"); return; }
   if(!(await confirmDialog("Restore this backup? It replaces the entire current schedule for everyone.", "Restore backup"))) return;
-  data = { engineers:d.engineers||[], off:d.off||{}, pin:d.pin||{}, assign:d.assign||{}, skip:d.skip||{}, sat:d.sat||{} };
+  data = { engineers:d.engineers||[], off:d.off||{}, pin:d.pin||{}, assign:d.assign||{}, skip:d.skip||{}, sat:d.sat||{}, committed:normCommitted(d.committed) };
   migrateSaturdays();                  // upgrade any pre-v3 backup that still holds Saturdays in pin
   await save();
   await refreshBoard(false);
   toast("Backup restored");
 }
-document.getElementById("backupBtn").addEventListener("click",backupData);
-document.getElementById("restoreBtn").addEventListener("click",()=>document.getElementById("restoreFile").click());
+document.getElementById("miBackup").addEventListener("click",backupData);
+document.getElementById("miRestore").addEventListener("click",()=>document.getElementById("restoreFile").click());
 document.getElementById("restoreFile").addEventListener("change",e=>{ const f=e.target.files[0]; if(f) restoreData(f); e.target.value=""; });
 
 /* ---------- reset month ---------- */
@@ -1329,7 +1417,7 @@ async function clearMonth(){
   });
   await commitAndSave(choice==="__all__" ? `Reset ${MONTHS[viewMonth]} — freshly auto-assigned` : `Cleared ${nameOf(choice)} from ${MONTHS[viewMonth]}`);
 }
-document.getElementById("clearMonthBtn").addEventListener("click",clearMonth);
+document.getElementById("miClear").addEventListener("click",clearMonth);
 
 /* reload the latest shared schedule and repaint */
 async function refreshBoard(announce){
@@ -1390,6 +1478,71 @@ function clearScopeDialog(monthLabel, engineersInMonth){
     sel.focus();
   });
 }
+
+/* ---------- coverage rules (guaranteed weekly primary days) ---------- */
+function committedDialog(){
+  return new Promise(resolve=>{
+    const cur = data.committed || {enabled:false, targets:{}};
+    const ov=document.createElement("div"); ov.className="cd-overlay";
+    const box=document.createElement("div"); box.className="cd-box";
+    const p=document.createElement("p"); p.className="cd-msg";
+    p.innerHTML=`<b>Guaranteed weekly primary days.</b> Give an engineer a number and they'll be auto-assigned that many <b>★ primary</b> days every week — spread across the week where possible, back-to-back allowed only for them, and never on a day they've marked off. If a week doesn't have that many open days, they simply get fewer. Everyone else balances normally around them. Set 0 for normal balancing.`;
+    const enWrap=document.createElement("label"); enWrap.style.cssText="display:flex;align-items:center;gap:8px;margin:2px 0 12px;font-size:13px;font-weight:600;";
+    const en=document.createElement("input"); en.type="checkbox"; en.checked=!!cur.enabled; en.style.cssText="width:16px;height:16px;";
+    enWrap.append(en, document.createTextNode("Enable guaranteed coverage"));
+    const rows=document.createElement("div"); rows.style.cssText="display:flex;flex-direction:column;gap:7px;max-height:230px;overflow:auto;";
+    const inputs={};
+    data.engineers.forEach(e=>{
+      const row=document.createElement("label"); row.style.cssText="display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;";
+      const nm=document.createElement("span"); nm.textContent=e.name;
+      const inp=document.createElement("input"); inp.type="number"; inp.min="0"; inp.max="5"; inp.step="1";
+      inp.value=String((cur.targets&&cur.targets[e.id])||0);
+      inp.style.cssText="width:60px;padding:5px 8px;text-align:center;border-radius:7px;border:1px solid var(--line-strong);background:var(--card);color:inherit;font:inherit;";
+      inputs[e.id]=inp; row.append(nm, inp); rows.append(row);
+    });
+    const actions=document.createElement("div"); actions.className="cd-actions";
+    const cancel=document.createElement("button"); cancel.className="cd-btn cd-cancel"; cancel.textContent="Cancel";
+    const ok=document.createElement("button"); ok.className="cd-btn cd-ok"; ok.textContent="Save & apply";
+    actions.append(cancel, ok); box.append(p, enWrap, rows, actions); ov.append(box); document.body.append(ov);
+    const done=v=>{ document.removeEventListener("keydown",onKey); ov.remove(); resolve(v); };
+    cancel.onclick=()=>done(null);
+    ok.onclick=()=>{
+      const targets={};
+      Object.keys(inputs).forEach(id=>{ const n=Math.max(0,Math.min(5, parseInt(inputs[id].value,10)||0)); if(n>0) targets[id]=n; });
+      done({enabled:en.checked, targets});
+    };
+    ov.addEventListener("mousedown",e=>{ if(e.target===ov) done(null); });
+    function onKey(e){ if(e.key==="Escape") done(null); }
+    document.addEventListener("keydown",onKey);
+  });
+}
+async function editCoverageRules(){
+  const next=await committedDialog();
+  if(next===null) return;
+  await load();                        // merge latest shared state first
+  data.committed=next;
+  const r=resolveMonth(viewYear,viewMonth); applyResolved(r);
+  await save();
+  buildProfiles(); renderCalendar();
+  const on = next.enabled && Object.keys(next.targets).length;
+  toast(on ? "Coverage rules applied" : "Coverage rules off — normal balancing");
+}
+document.getElementById("miRules").addEventListener("click",editCoverageRules);
+
+/* ---------- actions dropdown ---------- */
+function closeToolMenu(){
+  const p=document.getElementById("menuPop"); if(!p||!p.classList.contains("open")) return;
+  p.classList.remove("open"); document.getElementById("menuBtn").setAttribute("aria-expanded","false");
+}
+document.getElementById("menuBtn").addEventListener("click",e=>{
+  e.stopPropagation();
+  const p=document.getElementById("menuPop"), open=p.classList.toggle("open");
+  document.getElementById("menuBtn").setAttribute("aria-expanded", open?"true":"false");
+});
+// clicking any item runs its own handler (already wired) then closes the menu
+document.getElementById("menuPop").addEventListener("click",e=>{ if(e.target.closest("button")) closeToolMenu(); });
+document.addEventListener("click",e=>{ if(!e.target.closest(".menu-wrap")) closeToolMenu(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeToolMenu(); });
 
 /* ---------- init ---------- */
 (async function(){
