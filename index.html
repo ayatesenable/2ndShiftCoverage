@@ -390,7 +390,7 @@
 
   <div class="toolbar">
     <span class="count-pill" id="countPill"></span>
-    <span class="ver-tag">v6.3</span>
+    <span class="ver-tag">v6.4</span>
     <span class="spacer"></span>
     <button class="btn-tool" id="refreshBtn" title="Reload the latest shared schedule">↻ Refresh</button>
     <button class="btn-tool dash-hide" id="lockBtn" title="Lock editing — the password will be required again">🔒 Lock</button>
@@ -524,6 +524,11 @@ try{
     dbRef = firebase.database().ref(window.CALENDAR_DB.path || KEY);
   }
 }catch(e){ console.warn("Firebase init failed; falling back to localStorage", e); dbRef = null; }
+// Sibling node holding the name-resolved, date-keyed feed downstream automations read.
+// Lives next to the calendar data (…/published) so a normal save() to …/v1 never touches it.
+let pubRef = null;
+try{ if(dbRef) pubRef = dbRef.parent ? dbRef.parent.child("published") : firebase.database().ref("published"); }
+catch(e){ pubRef = null; }
 
 /* ---------- theme ---------- */
 const THEME_KEY = "theme-pref";
@@ -680,9 +685,90 @@ function normPriority(p){
 }
 async function save(){
   try{
-    if(dbRef){ await dbRef.set(data); return; }
+    if(dbRef){ await dbRef.set(data); await publishSchedule(); return; }
     localStorage.setItem(KEY, JSON.stringify(data));
   }catch(e){ toast("Could not save — check your database or browser storage"); }
+}
+
+/* ---------- published feed (name-resolved, id-free mirror for downstream automations) ----------
+   Builds a clean snapshot of the CURRENT and NEXT calendar month with engineer ids already
+   resolved to names, so tools like a Teams "next-day coverage" bot read this instead of the raw
+   calendar data and never touch ids or the app's internal schema. Matches the v6 two-shift model:
+   each weekday/Sunday carries a `shifts` map keyed by shift number ("1"/"2"), one primary per
+   shift, no backup. Only the configured WEEKDAY_SHIFTS appear.
+
+     published: {
+       meta: { generatedAt, range:{from,to}, weekdayShifts:[{shift,label}], note },
+       days: { "YYYY-MM-DD": <entry> }
+     }
+
+   Entry per day (status is always explicit so a lookup is never ambiguous):
+     weekday  -> { date, dow, type:"weekday",
+                   shifts:{ "2":{ shift:"2", label:"2nd", primary:"Alan", locked:false, status:"covered"|"open" }, … },
+                   status: "covered" (all shifts filled) | "partial" | "open" }
+     sunday   -> { date, dow, type:"sunday",  shifts:{ … status per shift "covered"|"no-coverage" },
+                   status: "covered" | "partial" | "no-coverage" }
+     saturday -> { date, dow, type:"saturday", available:[{name,from,to,fromLabel,toLabel}],
+                   status: "available" | "open" }
+     any day marked no-coverage-needed -> { date, dow, type, status:"no-coverage-needed" }
+
+   Times are 24h "HH:MM"; *Label fields are the friendly form ("6a", "2:30p"). Names are full
+   names from the roster. The whole node is overwritten each publish, so it only ever holds the
+   current + next month — no stale dates accumulate. */
+function buildPublished(){
+  const days={};
+  const start=new Date();
+  const nextM=new Date(start.getFullYear(), start.getMonth()+1, 1);
+  const months=[[start.getFullYear(), start.getMonth()], [nextM.getFullYear(), nextM.getMonth()]];
+  months.forEach(([y,m])=>{
+    const {res}=resolveMonth(y,m);
+    const daysInMonth=new Date(y,m+1,0).getDate();
+    const lead=new Date(y,m,1).getDay();
+    for(let d=1; d<=daysInMonth; d++){
+      const dowIdx=(lead+(d-1))%7;
+      const ds=dateStr(y,m,d);
+      const dow=DOW[dowIdx];
+      const type = dowIdx===0 ? "sunday" : dowIdx===6 ? "saturday" : "weekday";
+      if(data.skip[ds]){ days[ds]={ date:ds, dow, type, status:"no-coverage-needed" }; continue; }
+      const c=res[ds];
+      if(dowIdx===6){                                   // Saturday — open availability list
+        const list=(c&&c.list||[]).slice().sort((a,b)=> a.from.localeCompare(b.from) || nameOf(a.id).localeCompare(nameOf(b.id)));
+        days[ds]={ date:ds, dow, type:"saturday",
+          status: list.length ? "available" : "open",
+          available: list.map(e=>({ name:nameOf(e.id), from:e.from, to:e.to, fromLabel:fmtTime(e.from), toLabel:fmtTime(e.to) })) };
+      }else{                                            // weekday or Sunday — both hold res[ds].shifts
+        const shifts={}; let have=0, total=0;
+        WEEKDAY_SHIFTS.forEach(sh=>{
+          const sc = c && c.shifts ? c.shifts[sh] : null;
+          const p  = sc ? sc.p : null;
+          total++; if(p) have++;
+          shifts[sh]={ shift:sh, label:SHIFT_LABEL[sh],
+            primary: p?nameOf(p):null,
+            locked: !!(sc && sc.pinP),
+            status: p ? "covered" : (type==="sunday" ? "no-coverage" : "open") };
+        });
+        const status = have===total ? "covered" : (have>0 ? "partial" : (type==="sunday" ? "no-coverage" : "open"));
+        days[ds]={ date:ds, dow, type, shifts, status };
+      }
+    }
+  });
+  const keys=Object.keys(days).sort();
+  return {
+    meta:{
+      generatedAt: new Date().toISOString(),
+      range: keys.length ? { from:keys[0], to:keys[keys.length-1] } : null,
+      weekdayShifts: WEEKDAY_SHIFTS.map(sh=>({ shift:sh, label:SHIFT_LABEL[sh] })),
+      note: "Name-resolved mirror of the second-shift coverage calendar (current + next month). Read days['YYYY-MM-DD']; each weekday/Sunday has a shifts map keyed by shift number. Regenerated on every save and page open."
+    },
+    days
+  };
+}
+/* Write the feed. No-op without the shared DB; failures are swallowed so a viewer with
+   read-only access (or an offline blip) never sees an error from a background publish. */
+async function publishSchedule(){
+  if(!pubRef) return;
+  try{ await pubRef.set(buildPublished()); }
+  catch(e){ console.warn("Publish failed", e); }
 }
 
 /* ---------- helpers ---------- */
@@ -1812,6 +1898,7 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeToolMenu(); }
   }
   buildProfiles();
   renderCalendar();
+  publishSchedule();               // refresh the downstream feed for today's date boundary
 })();
 </script>
 
