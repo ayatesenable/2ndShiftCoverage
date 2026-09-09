@@ -154,7 +154,7 @@
   .optional{font-family:'IBM Plex Mono';font-size:10px;font-weight:500;letter-spacing:.03em;color:var(--muted)}
   .closed-label{font-family:'IBM Plex Mono';font-size:10px;font-weight:500;letter-spacing:.03em;color:var(--line-strong)}
   .cell.today .datenum{background:var(--ink);color:var(--paper)}
-  .names{display:flex;flex-direction:column;gap:2px;overflow:hidden}
+  .names{display:flex;flex-direction:column;gap:2px;overflow:hidden;align-items:center;text-align:center}
   .nm{font-size:11px;line-height:1.35;font-weight:500;color:var(--name);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .nm.prim{font-weight:700;color:var(--name-prim)}
   .nm.prim.locked{color:var(--accent)}
@@ -292,7 +292,31 @@
   .sd-err{display:none;font-size:12.5px;color:var(--red);font-weight:600;margin-top:9px;line-height:1.4}
   .cd-btn:disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
 
-  @media(max-width:620px){.cell{min-height:82px}.nm{font-size:10px}.legend{width:100%;margin-left:0}}
+  /* two-shift split: one horizontal band per shift (top = 1st, bottom = 2nd) */
+  .bands{display:flex;flex-direction:column;flex:1;margin-top:1px}
+  .band{display:flex;align-items:center;gap:6px;min-height:27px;padding:3px 1px}
+  .band+.band{border-top:1px solid var(--line)}
+  .cell.covered .band+.band{border-top-color:var(--avail-line)}
+  .cell.needs2 .band+.band{border-top-color:var(--yellow-line)}
+  .cell.uncov-week .band+.band{border-top-color:var(--red-line)}
+  .band-lbl{font-family:'IBM Plex Mono';font-size:8.5px;font-weight:700;letter-spacing:.03em;color:var(--muted);
+    border:1px solid var(--line-strong);border-radius:5px;padding:1px 4px;flex:none;text-transform:uppercase;line-height:1.2}
+  .band.b-open .band-lbl{opacity:.65}
+  .band-body{min-width:0;overflow:hidden;flex:1;text-align:center}
+  .band-body .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-flex;align-items:center;gap:1px}
+  .band .nm.prim{font-size:12px;font-weight:700;color:var(--name-prim)}
+  .band .nm.prim.locked{color:var(--accent)}
+  .band .nm.prim .star{color:var(--accent);margin-right:1px}
+  .band .nm.you{color:var(--accent)}
+  .band .needs{font-family:'IBM Plex Mono';font-size:9.5px;font-weight:600;color:var(--muted)}
+  .band-empty{color:var(--line-strong);font-weight:700}
+  .band-off{margin-left:auto;font-family:'IBM Plex Mono';font-size:8px;font-weight:600;color:var(--red);
+    border:1px solid var(--red-line);border-radius:5px;padding:0 4px;text-transform:uppercase;flex:none}
+  .band.solo{min-height:34px;padding:4px 1px}
+  .band.solo .nm.prim{font-size:13px}
+  .band .lockic{width:11px;height:11px;opacity:.8;flex:none}
+  @media(max-width:620px){.cell{min-height:88px}.nm{font-size:10px}.legend{width:100%;margin-left:0}
+    .band{min-height:25px;gap:4px}.band .nm.prim{font-size:11px}.band-lbl{font-size:8px;padding:1px 3px}}
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -312,7 +336,7 @@
     </div>
     <div class="eyebrow">Production Ops · Second Shift <span class="dash-badge">View only</span></div>
     <h1>Coverage Calendar</h1>
-    <p class="sub">Weekdays are auto-assigned a <b>primary (★)</b> and a <b>backup</b>, split evenly across the team. Pick your name and click any day you <b>can't</b> cover — the month reshuffles itself. Weekends are optional: click a Saturday to sign up with the hours you can work (several people can sign up and overlapping hours are fine); click a Sunday to claim it (Sundays show as no-coverage by default). Need someone on a fixed rhythm? Use <b>Coverage rules</b> to guarantee an engineer a set number of ★ primary days each week.</p>
+    <p class="sub">Each weekday is auto-assigned a <b>primary (★)</b> for every shift it runs, balanced evenly across the team. Pick your name and click any weekday you <b>can't</b> cover — that marks you off for the <b>whole day</b> and the month reshuffles itself. <b>Right-click</b> (or long-press) a day for finer control — mark off a single shift, or lock yourself into a shift. Weekends are optional: click a Saturday to sign up with the hours you can work (several people can sign up; overlapping hours are fine); click a Sunday to claim it (Sundays are no-coverage by default). Need someone on a fixed rhythm? Use <b>Coverage rules</b> to guarantee an engineer a set number of ★ days each week.</p>
   </header>
 
   <div class="controls">
@@ -348,7 +372,7 @@
     <span id="activeSlot"></span>
     <div class="legend">
       <span><i class="sw g"></i> Covered</span>
-      <span><i class="sw yl"></i> Needs backup</span>
+      <span><i class="sw yl"></i> Partial (1 shift)</span>
       <span><i class="sw r"></i> Uncovered</span>
       <span><i class="sw cl"></i> No coverage</span>
       <span><i class="sw y"></i> You're on</span>
@@ -366,14 +390,16 @@
 
   <div class="toolbar">
     <span class="count-pill" id="countPill"></span>
-    <span class="ver-tag">v5.0</span>
+    <span class="ver-tag">v6.3</span>
     <span class="spacer"></span>
     <button class="btn-tool" id="refreshBtn" title="Reload the latest shared schedule">↻ Refresh</button>
+    <button class="btn-tool dash-hide" id="lockBtn" title="Lock editing — the password will be required again">🔒 Lock</button>
     <div class="menu-wrap dash-hide">
       <button class="btn-tool" id="menuBtn" aria-haspopup="true" aria-expanded="false" title="Schedule actions">Actions<span class="menu-caret">▾</span></button>
       <div class="menu-pop" id="menuPop" role="menu">
         <button id="miBalance" role="menuitem" title="Recompute this month's assignments">Re-assign month</button>
         <button id="miRules" role="menuitem" title="Set guaranteed weekly primary days per engineer">Coverage rules</button>
+        <button id="miPriority" role="menuitem" title="Set fill priority — who covers first and who backs up">Priority tiers</button>
         <button id="miCsv" role="menuitem">Export CSV</button>
         <button id="miBackup" role="menuitem" title="Download all data as a backup file">Backup</button>
         <button id="miRestore" role="menuitem" title="Restore data from a backup file">Restore</button>
@@ -386,7 +412,7 @@
 
   <footer class="note">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#646c78" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-    <span>This calendar is <b>shared</b> — everyone sees and edits the same schedule, which lives in the database and persists across deploys. Every Mon–Fri is auto-assigned a <b>★ primary</b> and a <b>backup</b>, balanced evenly. Click a weekday to toggle whether <b>you can't cover</b> it; the whole month (today onward) reshuffles automatically to fill the gap. <b>Right-click or long-press</b> any day to lock yourself in as primary or backup — locked claims survive reshuffles (shown with a lock icon). <b>Weekends</b> aren't auto-assigned. <b>Saturdays</b> are an open sign-up — click one to add the hours you can work; any number of people can sign up and overlapping hours are fine. Sundays show as no-coverage by default (we don't normally run then) — click one to claim it if a shift comes up. Right-click a weekday or Saturday and choose <b>No coverage needed</b> to grey it out for holidays or shutdowns — it's skipped by balancing until you restore it. Past days stay frozen as a record. <b>Backup</b> downloads a full snapshot and <b>Restore</b> brings one back — handy before big changes. <b>Coverage rules</b> lets you guarantee an engineer a set number of ★ primary days each week (spread out, back-to-back allowed only for them, never on days they've marked off).</span>
+    <span>This calendar is <b>shared</b> — everyone sees and edits the same schedule, which lives in the database and persists across deploys. Each Mon–Fri is auto-assigned a single <b>★ primary</b> for every shift it runs (configurable — one shift or two), with the workload balanced evenly across all shifts combined. There's no backup slot. A green day has every shift covered, yellow means one is still open, red means none are. Click a weekday to toggle whether <b>you can't cover it</b> — that marks you off for the <b>whole day</b> and the month (today onward) reshuffles to fill the gap. <b>Right-click or long-press</b> a day for finer control: when two shifts run you can mark yourself off a <b>single shift</b>; either way you can <b>lock yourself into a shift</b> as primary — locked claims survive reshuffles (shown with a lock icon). No one is put on two shifts of the same day, and no one leads the same shift two weekdays running (unless it's the only way to fill it). <b>Weekends</b> aren't auto-assigned. <b>Saturdays</b> are an open sign-up — click one to add the hours you can work; any number of people can sign up and overlapping hours are fine. Sundays are no-coverage by default — click one to claim it if something comes up. Right-click a weekday or Saturday and choose <b>No coverage needed</b> to grey it out for holidays or shutdowns — it's skipped by balancing until you restore it. Past days stay frozen as a record. <b>Backup</b> downloads a full snapshot and <b>Restore</b> brings one back. <b>Coverage rules</b> lets you guarantee an engineer a set number of ★ days each week (spread out, back-to-back allowed only for them, never on shifts they've marked off).</span>
   </footer>
 </div>
 
@@ -408,6 +434,21 @@
     },
     path: "second-shift-calendar/v1"
   };
+
+  // Password gate: anyone in view-only mode must enter this password to unlock editing.
+  // CHANGE THIS to your team's password before deploying. Set enabled:false to turn the gate off.
+  // Note: this is a client-side deterrent (the password lives in the page), not hard security.
+  window.EDIT_GATE = {
+    enabled: true,
+    password: "2863"
+  };
+
+  // Weekday shift structure. ["2"] = second shift only (one primary per weekday);
+  // ["1","2"] = run both 1st and 2nd shift. Saturdays always use the hours sign-up,
+  // regardless of this setting. Change this one line if management adds a weekday shift.
+  window.SHIFTS = {
+    weekday: ["2"]
+  };
 </script>
 
 <script>
@@ -417,24 +458,39 @@ const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]; // Sunday-start
 const DEFAULT_ENGINEERS = ["Alan","Ricky","Brett","Jing","Abinay","Angel","James"];
 const LOCK_SVG = `<svg class="lockic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`;
 
+/* Two shifts per weekday. Each shift gets ONE primary (★) — no backup slot.
+   Shift keys are "1" (1st shift) and "2" (2nd shift). */
+const ALL_SHIFTS = ["1","2"];                 // every shift the data model can hold (storage & cleanup use this)
+/* Which shifts weekdays (and Sundays) actually run. Configure via window.SHIFTS.weekday:
+   ["2"] = second shift only (one primary per weekday); ["1","2"] = both shifts.
+   Saturdays always use the open hours sign-up regardless of this setting. */
+const WEEKDAY_SHIFTS = (function(){
+  const raw = (window.SHIFTS && Array.isArray(window.SHIFTS.weekday)) ? window.SHIFTS.weekday.map(String) : ["1","2"];
+  const w = ALL_SHIFTS.filter(k => raw.includes(k));   // valid keys, canonical order
+  return w.length ? w : ["2"];
+})();
+const SINGLE_WD = WEEKDAY_SHIFTS.length === 1;
+const SHIFT_KEYS = ALL_SHIFTS;                // alias: data-model cleanup loops walk every stored key
+const SHIFT_LABEL = { "1":"1st", "2":"2nd" };
+const otherShift = sh => sh==="1" ? "2" : "1";
+/* label used in menus/toasts; suppressed when weekdays run a single shift */
+const shiftWord = sh => SINGLE_WD ? "shift" : (SHIFT_LABEL[sh]+" shift");
+
 /* Saturday sign-up: an open availability list. Any number of engineers can add
    themselves with the hours they can work; overlapping windows are fine. */
-const SAT_DAY = { start:"06:00", end:"22:00" };     // default window & picker bounds
-// "6:00" -> "6a", "14:30" -> "2:30p"
+const SAT_DAY = { start:"06:00", end:"22:00" };
 function fmtTime(hhmm){
   if(!hhmm) return "";
   let [h,m]=hhmm.split(":").map(Number);
   const ap=h<12?"a":"p"; let hh=h%12; if(hh===0) hh=12;
   return m ? `${hh}:${pad(m)}${ap}` : `${hh}${ap}`;
 }
-// convert between stored 24h "HH:MM" and the {hour 1-12, minute, AM/PM} the dropdowns use
 function to12(hhmm){
   let [h,m]=(hhmm||SAT_DAY.start).split(":").map(Number);
   const ap=h<12?"AM":"PM"; let h12=h%12; if(h12===0) h12=12;
   return {h:h12, m, ap};
 }
 function to24(h12,m,ap){ let h=h12%12; if(ap==="PM") h+=12; return `${pad(h)}:${pad(m)}`; }
-// keep a Saturday availability list clean: valid engineer, ordered from<to, one entry per person
 function normSat(list){
   const out=[]; const seen=new Set();
   (Array.isArray(list)?list:[]).forEach(e=>{
@@ -446,21 +502,21 @@ function normSat(list){
   return out;
 }
 
-/* data model (shared/persisted)
+/* data model (shared/persisted) — v6 (1st + 2nd shift, single primary per shift)
    engineers : [{id,name}]
-   off       : { "YYYY-MM-DD": [engineerId,...] }        who CAN'T cover that day
-   pin       : { "YYYY-MM-DD": {p:id, s:id} }            manual locked claims (survive reshuffle; also used for Saturdays)
-   assign    : { "YYYY-MM-DD": {p:id|null, s:id|null} }  resolved assignments (persisted so PAST days stay frozen)
-   skip      : { "YYYY-MM-DD": true }                    days marked "no coverage needed" — greyed, excluded from balancing
-   sat       : { "YYYY-MM-DD": { s1:{id,from,to}|null,   Saturday only: 1st/2nd shift sign-ups. from/to = the hours that
-                                 s2:{id,from,to}|null } } person is available within the shift (a narrower window = a limit note)
-   committed : { enabled:bool, targets:{ engineerId:N } }  guaranteed weekly PRIMARY days per engineer
-                                                          (adjacency-exempt, soft-spread, capped at availability) */
-let data = { engineers:[], off:{}, pin:{}, assign:{}, skip:{}, sat:{}, committed:{enabled:false, targets:{}} };
-let activeId = null;                              // local: selected profile
+   off       : { "YYYY-MM-DD": { "1":[engId,...], "2":[engId,...] } }  who CAN'T cover, per shift
+                                                                       (a whole-day mark lands in both)
+   pin       : { "YYYY-MM-DD": { "1":id|null, "2":id|null } }          manual locked primary per shift
+   assign    : { "YYYY-MM-DD": { "1":id|null, "2":id|null } }          resolved primaries (past frozen)
+   skip      : { "YYYY-MM-DD": true }                                  no coverage needed (whole day)
+   sat       : { "YYYY-MM-DD": [{id,from,to}] }                        Saturday open availability list
+   committed : { enabled:bool, targets:{ engId:{ "1":N, "2":N } } }    guaranteed weekly primary days,
+                                                                       per engineer PER SHIFT */
+let data = { engineers:[], off:{}, pin:{}, assign:{}, skip:{}, sat:{}, committed:{enabled:false, targets:{}}, priority:{enabled:false, tiers:{}} };
+let activeId = null;
 const now = new Date();
 let viewYear = now.getFullYear();
-let viewMonth = now.getMonth();                   // 0-11
+let viewMonth = now.getMonth();
 let dbRef = null;
 try{
   if(window.CALENDAR_DB && window.CALENDAR_DB.enabled && window.firebase){
@@ -469,7 +525,7 @@ try{
   }
 }catch(e){ console.warn("Firebase init failed; falling back to localStorage", e); dbRef = null; }
 
-/* ---------- theme (night mode) ---------- */
+/* ---------- theme ---------- */
 const THEME_KEY = "theme-pref";
 function applyTheme(t){ document.documentElement.setAttribute("data-theme", t); }
 async function toggleTheme(){
@@ -479,18 +535,54 @@ async function toggleTheme(){
 }
 applyTheme(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 
-/* ---------- dashboard (read-only) mode ---------- */
+/* ---------- edit gate (password) ---------- */
+/* When enabled, editing is locked behind a shared password. Entering it once unlocks
+   editing for the rest of the browser session (until the tab/browser is closed). */
+const GATE = (window.EDIT_GATE && window.EDIT_GATE.enabled && window.EDIT_GATE.password) ? window.EDIT_GATE : null;
+const AUTH_KEY = "edit-auth";
+let authorized = !GATE;                                  // no gate configured → always allowed
+try{ if(GATE && sessionStorage.getItem(AUTH_KEY)==="1") authorized = true; }catch(e){}
+
+/* ---------- dashboard (read-only) ---------- */
 const DASH_KEY = "dash-pref";
 let dashboard = false;
-function applyDash(on){ dashboard=on; document.documentElement.setAttribute("data-dash", on?"on":"off"); }
+function applyDash(on){
+  dashboard=on;
+  document.documentElement.setAttribute("data-dash", on?"on":"off");
+  const btn=document.getElementById("dashToggle");
+  if(btn){
+    const t = on ? (GATE ? "Unlock editing (password)" : "Enable editing")
+                 : (GATE ? "Lock editing (view-only)" : "Switch to view-only");
+    btn.title=t; btn.setAttribute("aria-label", t);
+  }
+}
 async function toggleDashboard(){
+  const enteringEdit = dashboard;                        // currently view-only, about to unlock editing
+  if(enteringEdit && GATE && !authorized){
+    const pw = await passwordDialog();
+    if(pw===null) return;                                // cancelled — stay locked
+    if(pw !== GATE.password){ toast("Incorrect password"); return; }
+    authorized = true;
+    try{ sessionStorage.setItem(AUTH_KEY,"1"); }catch(e){}
+  }
   const on=!dashboard;
+  if(on && GATE){ authorized=false; try{ sessionStorage.removeItem(AUTH_KEY); }catch(e){} }  // returning to view-only re-locks
   applyDash(on);
   if(on) activeId=null;
   buildProfiles();
   renderCalendar();
   try{ localStorage.setItem(DASH_KEY, on?"1":""); }catch(e){}
-  toast(on ? "View-only dashboard on" : "Editing enabled");
+  toast(on ? (GATE?"Locked — view-only":"View-only mode") : "Editing unlocked");
+}
+/* explicit "Lock now" — drop straight to locked view-only (used by the toolbar Lock button) */
+async function lockNow(){
+  if(GATE){ authorized=false; try{ sessionStorage.removeItem(AUTH_KEY); }catch(e){} }
+  applyDash(true);
+  activeId=null;
+  buildProfiles();
+  renderCalendar();
+  try{ localStorage.setItem(DASH_KEY,"1"); }catch(e){}
+  toast("Locked — view-only");
 }
 try{ if(/view|dash/i.test(location.hash||"")) applyDash(true); }catch(e){}
 
@@ -500,26 +592,26 @@ async function load(){
     if(dbRef){
       const snap = await dbRef.get();
       const p = snap.exists() ? snap.val() : null;
-      if(p) data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{}, sat:p.sat||{}, committed:normCommitted(p.committed) };
+      if(p) data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{}, sat:p.sat||{}, committed:normCommitted(p.committed), priority:normPriority(p.priority) };
       migrateSaturdays();
+      migrateShifts();
       return;
     }
     const raw = localStorage.getItem(KEY);
     if(raw){
       const p = JSON.parse(raw);
-      data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{}, sat:p.sat||{}, committed:normCommitted(p.committed) };
+      data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{}, sat:p.sat||{}, committed:normCommitted(p.committed), priority:normPriority(p.priority) };
     }
     migrateSaturdays();
+    migrateShifts();
   }catch(e){ console.warn("Load failed", e); }
 }
-/* Upgrade older data into the current Saturday availability-list form. Handles both
-   pre-v3 pins ({p,s}) and v3.3 shift objects ({s1,s2}). Overlapping/merged windows are
-   collapsed per person. Idempotent — arrays are left untouched. */
+/* Upgrade older Saturday data into the availability-list form. Runs BEFORE migrateShifts
+   because it reads legacy Saturday pins ({p,s}) out of data.pin. */
 function migrateSaturdays(){
   if(!data.sat) data.sat={};
   const add=(list,id,from,to)=>{ if(!id) return; const ex=list.find(x=>x.id===id);
     if(ex){ if(from<ex.from) ex.from=from; if(to>ex.to) ex.to=to; } else list.push({id,from,to}); };
-  // 1. legacy Saturday pins -> availability list (old shift windows preserved)
   if(data.pin) Object.keys(data.pin).forEach(k=>{
     if(dowOf(k)!==6) return;
     const src=data.pin[k]||{};
@@ -529,7 +621,6 @@ function migrateSaturdays(){
     if(list.length) data.sat[k]=list; else delete data.sat[k];
     delete data.pin[k];
   });
-  // 2. v3.3 shift objects {s1,s2} -> availability list
   Object.keys(data.sat).forEach(k=>{
     const v=data.sat[k];
     if(Array.isArray(v)) return;
@@ -538,11 +629,52 @@ function migrateSaturdays(){
     if(list.length) data.sat[k]=list; else delete data.sat[k];
   });
 }
-/* normalize the committed-coverage config from any stored/backup shape */
+/* Upgrade single-shift (pre-v6) data into the two-shift model. The old app was the
+   SECOND shift only, so legacy primaries/assignments migrate onto shift "2"; legacy
+   backups are dropped (there is no backup slot any more). Idempotent on v6 data. */
+function migrateShifts(){
+  // off: [ids] (whole day) -> { "1":[ids], "2":[ids] }
+  if(data.off) Object.keys(data.off).forEach(k=>{
+    const v=data.off[k];
+    if(Array.isArray(v)){ data.off[k]={ "1":v.slice(), "2":v.slice() }; }
+    else if(v && typeof v==="object"){ data.off[k]={ "1":Array.isArray(v["1"])?v["1"].slice():[], "2":Array.isArray(v["2"])?v["2"].slice():[] }; }
+    else { data.off[k]={ "1":[], "2":[] }; }
+    if(!data.off[k]["1"].length && !data.off[k]["2"].length) delete data.off[k];
+  });
+  // pin: {p,s} -> { "1":null, "2":p }  (backup dropped)
+  if(data.pin) Object.keys(data.pin).forEach(k=>{
+    const v=data.pin[k]||{};
+    if(("p" in v)||("s" in v)){ data.pin[k]={ "1":null, "2":(v.p&&hasEng(v.p))?v.p:null }; }
+    else { data.pin[k]={ "1":(v["1"]&&hasEng(v["1"]))?v["1"]:null, "2":(v["2"]&&hasEng(v["2"]))?v["2"]:null }; }
+    if(!data.pin[k]["1"] && !data.pin[k]["2"]) delete data.pin[k];
+  });
+  // assign: {p,s} -> { "1":null, "2":p }
+  if(data.assign) Object.keys(data.assign).forEach(k=>{
+    const v=data.assign[k]||{};
+    if(("p" in v)||("s" in v)){ data.assign[k]={ "1":null, "2":v.p||null }; }
+    else { data.assign[k]={ "1":v["1"]||null, "2":v["2"]||null }; }
+    if(!data.assign[k]["1"] && !data.assign[k]["2"]) delete data.assign[k];
+  });
+}
+/* normalize committed config from any stored/backup shape (old = number on 2nd shift) */
 function normCommitted(c){
   const out={ enabled:!!(c&&c.enabled), targets:{} };
+  const clamp=v=>{ const n=parseInt(v,10); return (n>0)?Math.min(5,n):0; };
   if(c&&c.targets&&typeof c.targets==="object"){
-    Object.keys(c.targets).forEach(id=>{ const n=parseInt(c.targets[id],10); if(n>0) out.targets[id]=Math.min(5,n); });
+    Object.keys(c.targets).forEach(id=>{
+      const t=c.targets[id];
+      if(typeof t==="number"||typeof t==="string"){ const n=clamp(t); if(n>0) out.targets[id]={ "1":0, "2":n }; }
+      else if(t&&typeof t==="object"){ const s1=clamp(t["1"]), s2=clamp(t["2"]); if(s1||s2) out.targets[id]={ "1":s1, "2":s2 }; }
+    });
+  }
+  return out;
+}
+/* normalize the priority-tier config from any stored/backup shape.
+   tiers: { engineerId: N } where 1 = highest priority (filled first); absent/0 = unranked (fills last). */
+function normPriority(p){
+  const out={ enabled:!!(p&&p.enabled), tiers:{} };
+  if(p&&p.tiers&&typeof p.tiers==="object"){
+    Object.keys(p.tiers).forEach(id=>{ const n=parseInt(p.tiers[id],10); if(n>0) out.tiers[id]=Math.min(9,n); });
   }
   return out;
 }
@@ -563,25 +695,29 @@ function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",
 function firstName(n){return n.split(" ")[0];}
 function todayStr(){ const t=new Date(); return dateStr(t.getFullYear(),t.getMonth(),t.getDate()); }
 function dowOf(ds){ const [y,m,d]=ds.split("-").map(Number); return new Date(y,m-1,d).getDay(); }
-// Monday-anchored week key, used to limit each engineer to one primary per week
 function weekKey(ds){
   const [y,m,d]=ds.split("-").map(Number);
   const dt=new Date(y,m-1,d);
-  const dow=dt.getDay();                 // 0=Sun..6=Sat
-  dt.setDate(dt.getDate() + (dow===0?-6:1-dow));   // back up to Monday
+  const dow=dt.getDay();
+  dt.setDate(dt.getDate() + (dow===0?-6:1-dow));
   return dateStr(dt.getFullYear(), dt.getMonth(), dt.getDate());
 }
 function shiftDay(ds, delta){ const [y,m,d]=ds.split("-").map(Number); const dt=new Date(y,m-1,d); dt.setDate(dt.getDate()+delta); return dateStr(dt.getFullYear(),dt.getMonth(),dt.getDate()); }
-// true if engineer `id` is already primary on an adjacent weekday (Mon-Tue … Thu-Fri).
-// Fri→Mon isn't adjacent (the weekend breaks it). Used as a hard no-back-to-back filter.
-function adjacentPrimary(ds, id, res){
-  for(const nb of [shiftDay(ds,-1), shiftDay(ds,1)]){
-    const dw=dowOf(nb);
-    if(dw>=1 && dw<=5 && res[nb] && res[nb].p===id) return true;
-  }
-  return false;
+
+/* off-mark accessors (per shift) */
+function offArr(ds,sh){ const o=data.off[ds]; if(!o) return []; const a=o[sh]; return Array.isArray(a)?a:[]; }
+function isOff(ds,id,sh){ return offArr(ds,sh).includes(id); }
+function isOffDay(ds,id){ return WEEKDAY_SHIFTS.every(sh=>isOff(ds,id,sh)); }
+function ensureOff(ds){
+  let o=data.off[ds];
+  if(!o || typeof o!=="object" || Array.isArray(o)) o=data.off[ds]={ "1":[], "2":[] };
+  if(!Array.isArray(o["1"])) o["1"]=[]; if(!Array.isArray(o["2"])) o["2"]=[];
+  return o;
 }
-function isOff(ds,id){ return (data.off[ds]||[]).includes(id); }
+function setOff(ds,id,sh){ const o=ensureOff(ds); if(!o[sh].includes(id)) o[sh].push(id); }
+function clearOff(ds,id,sh){ const o=data.off[ds]; if(!o||!Array.isArray(o[sh])) return; o[sh]=o[sh].filter(x=>x!==id); }
+function cleanOff(ds){ const o=data.off[ds]; if(o && (!o["1"]||!o["1"].length) && (!o["2"]||!o["2"].length)) delete data.off[ds]; }
+function pinAt(ds,sh){ const p=data.pin[ds]; const id=p&&p[sh]; return (id&&hasEng(id))?id:null; }
 
 /* ---------- top selectors ---------- */
 function buildMonthYear(){
@@ -609,32 +745,21 @@ function buildProfiles(){
 function renderStatus(){
   const slot=document.getElementById("activeSlot");
   if(activeId){
-    slot.innerHTML=`<span class="active-tag"><span class="dot"></span>Editing as ${esc(nameOf(activeId))}</span> <span class="hint">— click a weekday you <b>can't</b> cover; click a <b>Saturday</b> to add the hours you can work; click a Sunday to claim it. Right-click (or long-press) to lock a claim.</span>`;
+    slot.innerHTML=`<span class="active-tag"><span class="dot"></span>Editing as ${esc(nameOf(activeId))}</span> <span class="hint">— click a weekday you <b>can't</b> cover (whole day); <b>right-click</b> to mark off a single shift or lock a shift. Click a <b>Saturday</b> to add hours; click a Sunday to claim it.</span>`;
   }else{
     slot.innerHTML=`<span class="hint"><b>Summary view.</b> Choose your name above (or add a new engineer) to mark days off and claim shifts.</span>`;
   }
 }
 
 /* ---------- assignment engine ---------- */
-// position in the engineer roster — used as the tie-break so assignment rotates
-// through the list in order (Alan, Ricky, Brett, ...) instead of alphabetically
 const rosterIndex = id => { const i=data.engineers.findIndex(e=>e.id===id); return i<0?9999:i; };
-function pickLeast(cands, loadA, loadT){
-  return cands.slice().sort((a,b)=>
-    ((loadA[a.id]||0)-(loadA[b.id]||0)) ||     // fewest of this role first (no repeat before all have one)
-    ((loadT[a.id]||0)-(loadT[b.id]||0)) ||     // then fewest total assignments
-    (rosterIndex(a.id)-rosterIndex(b.id))      // then follow the roster order
-  )[0];
-}
-/* Choose `k` days from `cand` (all within one week) to be as spread out across the
-   week as possible. Deterministic so a person's committed days stay stable between
-   recomputes: prefer the largest minimum gap, then the widest span, then earliest.
-   Returns fewer than k only when cand is smaller (caps at what's available). */
+/* Choose `k` days from `cand` (within one week) spread out as much as possible.
+   Deterministic so committed days stay stable across recomputes. */
 function pickSpread(cand, k){
-  const days = cand.slice().sort();                 // chronological
+  const days = cand.slice().sort();
   if(k<=0) return [];
   if(k>=days.length) return days;
-  const pos = days.map(ds=>dowOf(ds));              // 1..5 (Mon..Fri)
+  const pos = days.map(ds=>dowOf(ds));
   const combos=[];
   (function choose(start, acc){
     if(acc.length===k){ combos.push(acc.slice()); return; }
@@ -653,9 +778,10 @@ function pickSpread(cand, k){
 }
 
 /* Resolve a whole month deterministically.
-   - Past weekdays: frozen from data.assign (fall back to fresh compute if none stored).
-   - Today/future weekdays: recomputed fresh, respecting off-marks and pins, balanced evenly.
-   - Saturdays & Sundays: only whatever is pinned (never auto-filled). Sundays default to no-coverage. */
+   - Past weekdays: frozen from data.assign.
+   - Today/future weekdays: two shifts, each recomputed fresh (off-marks, pins, committed),
+     balanced by COMBINED primary count across both shifts.
+   - Saturdays: open availability list. Sundays: pins only (default no-coverage). */
 function resolveMonth(y,m){
   const daysInMonth=new Date(y,m+1,0).getDate();
   const lead=new Date(y,m,1).getDay();
@@ -664,159 +790,183 @@ function resolveMonth(y,m){
   for(let d=1;d<=daysInMonth;d++){
     const dowIdx=(lead+(d-1))%7;
     const ds=dateStr(y,m,d);
-    if(data.skip[ds]) continue;          // "no coverage needed" — never assigned, ignored by balancing
+    if(data.skip[ds]) continue;
     if(dowIdx===0) sundays.push(ds);
     else if(dowIdx===6) saturdays.push(ds);
     else weekdays.push(ds);
   }
   const engs=data.engineers;
-  const avail = ds => engs.filter(e=>!isOff(ds,e.id));
-  const availCount={}; weekdays.concat(saturdays,sundays).forEach(ds=>availCount[ds]=avail(ds).length);
-  const pinV = (ds,slot) => { const p=data.pin[ds]; const id=p&&p[slot]; return (id&&hasEng(id)&&!isOff(ds,id))?id:null; };
+  const availFor = (ds,sh) => engs.filter(e=>!isOff(ds,e.id,sh));
 
   const res={};
-  const loadP={}, loadS={}, loadT={};
-  const addP=id=>{ if(!id)return; loadP[id]=(loadP[id]||0)+1; loadT[id]=(loadT[id]||0)+1; };
-  const addS=id=>{ if(!id)return; loadS[id]=(loadS[id]||0)+1; loadT[id]=(loadT[id]||0)+1; };
-  // one-primary-per-week tracking: weekKey -> Set of engineer ids already primary that week
+  const loadP={};                                   // COMBINED primaries per engineer (both shifts)
+  const load = id => loadP[id]||0;
+  const addP = id => { if(id) loadP[id]=(loadP[id]||0)+1; };
+  const subP = id => { if(id) loadP[id]=(loadP[id]||0)-1; };
+
+  // soft "one primary per week" preference, tracked per week+shift
   const weekPrimary={};
-  const markWeek=(ds,id)=>{ if(!id)return; const k=weekKey(ds); (weekPrimary[k]||(weekPrimary[k]=new Set())).add(id); };
+  const wkSet=(wk,sh)=> (weekPrimary[wk+"|"+sh]||(weekPrimary[wk+"|"+sh]=new Set()));
+  const markWeek=(ds,sh,id)=>{ if(id) wkSet(weekKey(ds),sh).add(id); };
+
+  const primAt = (ds,sh) => (res[ds]&&res[ds].shifts&&res[ds].shifts[sh]) ? res[ds].shifts[sh].p : null;
+  const sameDayOther = (ds,sh,id) => primAt(ds,otherShift(sh))===id;   // don't hold both shifts same day
+  function adjacentSameShift(ds,sh,id){                                  // no back-to-back primary, per shift
+    for(const nb of [shiftDay(ds,-1), shiftDay(ds,1)]){
+      const dw=dowOf(nb);
+      if(dw>=1&&dw<=5 && res[nb] && res[nb].shifts && res[nb].shifts[sh].p===id) return true;
+    }
+    return false;
+  }
+
+  // init weekday cells (one entry per configured weekday shift)
+  weekdays.forEach(ds=>{
+    const shifts={};
+    WEEKDAY_SHIFTS.forEach(sh=>{ shifts[sh]={p:null,frozen:false,pinP:false,ruleP:false}; });
+    res[ds]={ wk:true, shifts };
+  });
 
   // 1. seed frozen-past + pinned slots
   weekdays.forEach(ds=>{
     const past = ds < tStr;
-    if(past && data.assign[ds]){
-      let p=data.assign[ds].p||null, s=data.assign[ds].s||null;
-      if(p&&!hasEng(p)) p=null; if(s&&!hasEng(s)) s=null;
-      res[ds]={p,s,frozen:true,pinP:false,pinS:false};
-      addP(p); addS(s); markWeek(ds,p);
-    }else{
-      let p=pinV(ds,"p"), s=pinV(ds,"s");
-      if(p&&s&&p===s) s=null;
-      res[ds]={p,s,frozen:false,pinP:!!p,pinS:!!s};
-      addP(p); addS(s); markWeek(ds,p);
-    }
+    WEEKDAY_SHIFTS.forEach(sh=>{
+      const c=res[ds].shifts[sh];
+      if(past && data.assign[ds]){
+        let p=data.assign[ds][sh]||null; if(p&&!hasEng(p)) p=null;
+        c.p=p; c.frozen=true; addP(p); markWeek(ds,sh,p);
+      }else{
+        let p=pinAt(ds,sh); if(p && isOff(ds,p,sh)) p=null;
+        c.p=p; c.pinP=!!p; addP(p); markWeek(ds,sh,p);
+      }
+    });
   });
 
-  // 1b. committed coverage — guaranteed weekly PRIMARY days for toggled engineers.
-  //     These are pinned before the general fill and marked ruleP so the balance-repair
-  //     pass leaves them alone. Committed placements are adjacency-EXEMPT (the toggled
-  //     engineer may land back-to-back), chosen soft-spread across the week, and never
-  //     on a day they've marked off. The count caps at the days actually available, so a
-  //     heavily-blocked week simply yields fewer than the target.
+  // 1b. committed coverage — guaranteed weekly PRIMARY days per engineer PER SHIFT.
+  //     Pinned before the general fill, flagged ruleP so the repair pass leaves them,
+  //     adjacency-exempt, soft-spread, never on a marked-off day or the same day the
+  //     engineer already holds the other shift. Caps at available days.
   if(data.committed && data.committed.enabled){
     const targets = data.committed.targets || {};
     const byWeek={};
-    weekdays.forEach(ds=>{ if(res[ds].frozen) return; (byWeek[weekKey(ds)]||(byWeek[weekKey(ds)]=[])).push(ds); });
-    engs.filter(e=>(targets[e.id]|0)>0)
-        .sort((a,b)=>rosterIndex(a.id)-rosterIndex(b.id))   // deterministic order
-        .forEach(e=>{
-      const target=targets[e.id]|0;
-      Object.keys(byWeek).sort().forEach(wk=>{
-        let have=0;                                          // days already primary this week (pins/frozen count)
-        weekdays.forEach(ds=>{ if(weekKey(ds)===wk && res[ds].p===e.id) have++; });
-        const need=target-have;
-        if(need<=0) return;
-        const cand=byWeek[wk].filter(ds=> !res[ds].p && !isOff(ds,e.id) && res[ds].s!==e.id);
-        pickSpread(cand, need).forEach(ds=>{ res[ds].p=e.id; res[ds].ruleP=true; addP(e.id); markWeek(ds,e.id); });
+    weekdays.forEach(ds=>{ (byWeek[weekKey(ds)]||(byWeek[weekKey(ds)]=[])).push(ds); });
+    WEEKDAY_SHIFTS.forEach(sh=>{
+      engs.filter(e=>((targets[e.id]&&targets[e.id][sh])|0)>0)
+          .sort((a,b)=>rosterIndex(a.id)-rosterIndex(b.id))
+          .forEach(e=>{
+        const target=(targets[e.id][sh])|0;
+        Object.keys(byWeek).sort().forEach(wk=>{
+          let have=0;
+          byWeek[wk].forEach(ds=>{ if(res[ds].shifts[sh].p===e.id) have++; });
+          const need=target-have; if(need<=0) return;
+          const cand=byWeek[wk].filter(ds=> !res[ds].shifts[sh].frozen && !res[ds].shifts[sh].p
+                       && !isOff(ds,e.id,sh) && !sameDayOther(ds,sh,e.id));
+          pickSpread(cand, need).forEach(ds=>{ res[ds].shifts[sh].p=e.id; res[ds].shifts[sh].ruleP=true; addP(e.id); markWeek(ds,sh,e.id); });
+        });
       });
     });
   }
 
-  // 2. fill open primaries (most-constrained day first). Two hard/soft rules:
-  //    HARD  — never primary on two adjacent weekdays (back-to-back), relaxed only if a
-  //            day would otherwise be uncovered.
-  //    SOFT  — one primary per week preferred, but balance (fewest primaries) wins so
-  //            someone behind can take a second (non-adjacent) day in a free week.
-  weekdays.filter(ds=>!res[ds].frozen && !res[ds].p)
-    .sort((a,b)=>(availCount[a]-availCount[b])||a.localeCompare(b))
-    .forEach(ds=>{
-      const pool=avail(ds).filter(e=>e.id!==res[ds].s);
-      if(!pool.length){ res[ds].p=null; return; }
-      const nonAdj=pool.filter(e=>!adjacentPrimary(ds,e.id,res));
-      const base=nonAdj.length ? nonAdj : pool;   // relax back-to-back only to avoid an uncovered day
-      const used=weekPrimary[weekKey(ds)]||new Set();
-      const pick=base.slice().sort((a,b)=>
-        ((loadP[a.id]||0)-(loadP[b.id]||0)) ||                 // fewest primaries first (keeps totals even)
-        ((used.has(a.id)?1:0)-(used.has(b.id)?1:0)) ||         // then prefer nobody twice in a week
-        ((loadT[a.id]||0)-(loadT[b.id]||0)) ||                 // then fewest total assignments
-        (rosterIndex(a.id)-rosterIndex(b.id))                  // then follow the roster order
-      )[0];
-      res[ds].p=pick.id; addP(pick.id); markWeek(ds,pick.id);
-    });
+  // 2. fill open primary slots, most-constrained (fewest available) first.
+  //    HARD  — availability; not both shifts same day; no same-shift back-to-back
+  //            (each relaxed only if a slot would otherwise be uncovered).
+  //    PRIORITY (if enabled) — lowest tier number wins first, so higher tiers carry the
+  //            load and lower tiers only fill a day when everyone above them is unavailable.
+  //    SOFT  — one primary per week per shift; combined balance (fewest total ★) within a tier.
+  const PRI = !!(data.priority && data.priority.enabled);
+  const tierOf = id => (PRI && data.priority.tiers[id]>0) ? data.priority.tiers[id] : 99;
+  const openSlots=[];
+  weekdays.forEach(ds=> WEEKDAY_SHIFTS.forEach(sh=>{ const c=res[ds].shifts[sh]; if(!c.frozen && !c.p) openSlots.push({ds,sh}); }));
+  openSlots.sort((a,b)=>
+    (availFor(a.ds,a.sh).length - availFor(b.ds,b.sh).length) ||
+    a.ds.localeCompare(b.ds) || a.sh.localeCompare(b.sh)
+  );
+  openSlots.forEach(({ds,sh})=>{
+    const avail=availFor(ds,sh);
+    if(!avail.length){ res[ds].shifts[sh].p=null; return; }
+    let base=avail.filter(e=>!sameDayOther(ds,sh,e.id));
+    if(!base.length) base=avail;                                   // relax "not both shifts" to avoid a gap
+    const nonAdj=base.filter(e=>!adjacentSameShift(ds,sh,e.id));
+    const cands=nonAdj.length?nonAdj:base;                         // relax back-to-back to avoid a gap
+    const used=wkSet(weekKey(ds),sh);
+    const pick=cands.slice().sort((a,b)=>
+      (tierOf(a.id)-tierOf(b.id)) ||                               // priority tier first (lower = higher priority)
+      (load(a.id)-load(b.id)) ||
+      ((used.has(a.id)?1:0)-(used.has(b.id)?1:0)) ||
+      (rosterIndex(a.id)-rosterIndex(b.id))
+    )[0];
+    res[ds].shifts[sh].p=pick.id; addP(pick.id); markWeek(ds,sh,pick.id);
+  });
 
-  // 2b. balance repair via augmenting paths. A single swap can't always help (the only
-  //     day an under-loaded person can take may be held by someone who isn't the most
-  //     loaded). So we search for a CHAIN of valid reassignments from a most-loaded
-  //     engineer to a least-loaded one — e.g. James hands Jing the 27th, Alan hands James
-  //     a day — which nets one primary off the top and one onto the bottom. Every hard
-  //     rule (availability, not-the-backup, no back-to-back, no frozen/pinned) is honored
-  //     at each hop, and each chain strictly shrinks the spread, so this terminates.
+  // 2b. balance repair via augmenting paths, on COMBINED primary load.
+  //     With priority on, repair runs WITHIN each tier only — it smooths load among
+  //     equal-priority people but never shifts a slot to a different tier (which would
+  //     undo the priority concentration).
   {
-    const load = id => loadP[id]||0;
-    const canTake = (ds,yid)=> !isOff(ds,yid) && res[ds].s!==yid && res[ds].p!==yid && !adjacentPrimary(ds,yid,res);
-    let guard=0;
-    while(guard++ < 300){
-      const maxL=Math.max(...engs.map(e=>load(e.id)));
-      const minL=Math.min(...engs.map(e=>load(e.id)));
-      if(maxL-minL<=1) break;
-      const sources=engs.filter(e=>load(e.id)===maxL).map(e=>e.id);
-      const sinks=new Set(engs.filter(e=>load(e.id)===minL).map(e=>e.id));
-      const movable=weekdays.filter(ds=>!res[ds].frozen && !res[ds].pinP && !res[ds].ruleP && res[ds].p);
-      // BFS over engineers; edge X->Y (witness day d) means X holds movable day d and Y can take it
-      const prev={}; const seen=new Set(sources); const q=[...sources]; let sink=null;
-      while(q.length){
-        const x=q.shift();
-        if(sinks.has(x)){ sink=x; break; }
-        for(const ds of movable){
-          if(res[ds].p!==x) continue;
-          for(const y of engs){
-            if(seen.has(y.id)) continue;
-            if(canTake(ds,y.id)){ prev[y.id]={from:x,day:ds}; seen.add(y.id); q.push(y.id); }
+    const canTake=(ds,sh,yid)=> !isOff(ds,yid,sh) && res[ds].shifts[sh].p!==yid
+                    && !sameDayOther(ds,sh,yid) && !adjacentSameShift(ds,sh,yid);
+    const movable=[];
+    weekdays.forEach(ds=> WEEKDAY_SHIFTS.forEach(sh=>{
+      const c=res[ds].shifts[sh]; if(!c.frozen && !c.pinP && !c.ruleP && c.p) movable.push({ds,sh});
+    }));
+    const runRepair=(pool)=>{
+      if(pool.length<2) return;
+      let guard=0;
+      while(guard++ < 400){
+        const loads=pool.map(e=>load(e.id));
+        const maxL=Math.max(...loads), minL=Math.min(...loads);
+        if(maxL-minL<=1) break;
+        const sources=pool.filter(e=>load(e.id)===maxL).map(e=>e.id);
+        const sinks=new Set(pool.filter(e=>load(e.id)===minL).map(e=>e.id));
+        const prev={}; const seen=new Set(sources); const q=[...sources]; let sink=null;
+        while(q.length){
+          const x=q.shift();
+          if(sinks.has(x)){ sink=x; break; }
+          for(const {ds,sh} of movable){
+            if(res[ds].shifts[sh].p!==x) continue;
+            for(const yy of pool){                       // only reassign within this pool/tier
+              if(seen.has(yy.id)) continue;
+              if(canTake(ds,sh,yy.id)){ prev[yy.id]={from:x,ds,sh}; seen.add(yy.id); q.push(yy.id); }
+            }
           }
         }
+        if(!sink) break;
+        for(let cur=sink; prev[cur]; cur=prev[cur].from){
+          const {ds,sh,from}=prev[cur];
+          subP(from); res[ds].shifts[sh].p=cur; addP(cur);
+        }
       }
-      if(!sink){ break; }                         // no chain improves things — remaining gap is unavoidable
-      for(let cur=sink; prev[cur]; cur=prev[cur].from){
-        const d=prev[cur].day, from=prev[cur].from;
-        loadP[from]--; loadT[from]--;
-        res[d].p=cur; loadP[cur]=(loadP[cur]||0)+1; loadT[cur]=(loadT[cur]||0)+1;
-      }
+    };
+    if(PRI){
+      [...new Set(engs.map(e=>tierOf(e.id)))].sort((a,b)=>a-b)
+        .forEach(T=> runRepair(engs.filter(e=>tierOf(e.id)===T)));
+    }else{
+      runRepair(engs);
     }
   }
 
-  // 3. fill open backups
-  weekdays.filter(ds=>!res[ds].frozen && !res[ds].s)
-    .sort((a,b)=>(availCount[a]-availCount[b])||a.localeCompare(b))
-    .forEach(ds=>{
-      const cands=avail(ds).filter(e=>e.id!==res[ds].p);
-      if(!cands.length){ res[ds].s=null; return; }
-      const pick=pickLeast(cands,loadS,loadT);
-      res[ds].s=pick.id; addS(pick.id);
-    });
-
-  // 4. Saturdays — open availability list (any number of engineers, overlaps allowed)
-  saturdays.forEach(ds=>{
-    res[ds]={sat:true, list:normSat(data.sat[ds]), p:null, s:null, frozen:false, pinP:false, pinS:false};
-  });
-  // Sundays — pins only (default to no-coverage)
+  // Saturdays — open availability list
+  saturdays.forEach(ds=>{ res[ds]={ sat:true, list:normSat(data.sat[ds]) }; });
+  // Sundays — pins only, per configured shift (default no-coverage)
   sundays.forEach(ds=>{
-    let p=pinV(ds,"p"), s=pinV(ds,"s"); if(p&&s&&p===s) s=null;
-    res[ds]={p,s,sun:true,frozen:false,pinP:!!p,pinS:!!s};
+    const shifts={};
+    WEEKDAY_SHIFTS.forEach(sh=>{ shifts[sh]={p:pinAt(ds,sh), pinP:!!pinAt(ds,sh)}; });
+    res[ds]={ sun:true, shifts };
   });
 
-  return {res, weekdays, saturdays, sundays, loadP, loadS, loadT};
+  return {res, weekdays, saturdays, sundays, loadP};
 }
 
 function applyResolved(r){
   Object.keys(r.res).forEach(ds=>{
     const c=r.res[ds];
-    if(c.p||c.s) data.assign[ds]={p:c.p||null,s:c.s||null};
+    if(!c.shifts) return;                             // Saturdays aren't stored in assign
+    const out={};
+    WEEKDAY_SHIFTS.forEach(sh=>{ if(c.shifts[sh] && c.shifts[sh].p) out[sh]=c.shifts[sh].p; });
+    if(Object.keys(out).length) data.assign[ds]=out;
     else delete data.assign[ds];
   });
 }
 
-/* recompute the viewed month, persist (freezing the past), redraw */
 async function commitAndSave(msg){
   const r=resolveMonth(viewYear,viewMonth);
   applyResolved(r);
@@ -826,27 +976,29 @@ async function commitAndSave(msg){
 }
 
 /* ---------- calendar ---------- */
-function cellInner(cell,kind){       // kind: "" weekday, "sat", "sun"
-  const p=cell.p, s=cell.s;
-  const optional = kind==="sat" || kind==="sun";
-  const line=(id,role,pinned)=>{
-    const you=id===activeId;
-    const star = role==="p" ? '<span class="star">★</span> ' : '';
-    const tag  = role==="s" ? '<span class="tag">2ND</span>' : '';
-    const lk   = pinned ? LOCK_SVG : '';
-    return `<span class="nm ${role==="p"?"prim":"sec"} ${you?"you":""} ${pinned?"locked":""}">${star}${tag}${esc(firstName(nameOf(id)))}${lk}</span>`;
-  };
-  let rows="";
-  if(p) rows+=line(p,"p",cell.pinP);
-  else if(kind==="sat") rows+=`<span class="optional">optional — click to claim</span>`;
-  else if(kind==="sun") rows+=`<span class="closed-label">no coverage — click to claim</span>`;
-  else rows+=`<span class="needs">uncovered</span>`;
-  if(s) rows+=line(s,"s",cell.pinS);
-  else if(p && !optional) rows+=`<span class="needs2">needs backup</span>`;
-  return `<div class="names">${rows}</div>`;
+/* one horizontal band per configured shift (label hidden when weekdays run a single shift) */
+function shiftBand(cell, ds, shKey, kind){          // kind: "" weekday, "sun"
+  const p=cell.p;
+  const you=p && p===activeId;
+  const meOff = activeId && kind!=="sun" && isOff(ds,activeId,shKey);
+  let body;
+  if(p){
+    const lk = cell.pinP ? LOCK_SVG : '';
+    body=`<span class="nm prim ${you?"you":""} ${cell.pinP?"locked":""}"><span class="star">★</span>${esc(firstName(nameOf(p)))}${lk}</span>`;
+  }else if(kind==="sun"){
+    body=`<span class="band-empty">—</span>`;
+  }else{
+    body=`<span class="needs">open</span>`;
+  }
+  const off = meOff ? `<span class="band-off">off</span>` : '';
+  const lbl = SINGLE_WD ? '' : `<span class="band-lbl">${SHIFT_LABEL[shKey]}</span>`;
+  return `<div class="band ${SINGLE_WD?'solo':''} ${p?'':'b-open'}">${lbl}<span class="band-body">${body}</span>${off}</div>`;
 }
-
-/* Saturday cell: one line per sign-up (name + the hours they can work). */
+function cellInner(cell, ds, kind){
+  const bands=WEEKDAY_SHIFTS.map(sh=>shiftBand(cell.shifts[sh],ds,sh,kind)).join("");
+  return `<div class="bands">${bands}</div>`;
+}
+/* Saturday cell: one line per sign-up (name + hours). */
 function satInner(cell){
   const list=(cell.list||[]).slice().sort((a,b)=> a.from.localeCompare(b.from) || firstName(nameOf(a.id)).localeCompare(firstName(nameOf(b.id))));
   if(!list.length) return `<div class="names"><span class="optional">open — click to sign up</span></div>`;
@@ -879,31 +1031,30 @@ function renderCalendar(){
     const cell=res[ds];
     const past = ds<tStr;
     const editable = activeId && !dashboard && !past && !skipped;
-    const iamoff = activeId && isWeekday && !skipped && isOff(ds,activeId);
+    const iamoff = activeId && isWeekday && !skipped && isOffDay(ds,activeId);
     const satMine = isSat && cell && (cell.list||[]).some(e=>e.id===activeId);
-    const mine = activeId && cell && !skipped && (cell.p===activeId||cell.s===activeId||satMine);
+    const filled = (cell&&cell.shifts) ? WEEKDAY_SHIFTS.filter(sh=>cell.shifts[sh]&&cell.shifts[sh].p).length : 0;
+    const mine = activeId && cell && !skipped && (satMine || (cell.shifts && WEEKDAY_SHIFTS.some(sh=>cell.shifts[sh]&&cell.shifts[sh].p===activeId)));
 
     let cls="cell workday";
     if(skipped) cls="cell closed";
-    else if(isSun) cls += (cell&&cell.p) ? " covered" : " sun-open";
     else if(isSat) cls += (cell&&cell.list&&cell.list.length) ? " covered" : " sat-open";
-    else cls += (cell.p&&cell.s) ? " covered" : (cell.p ? " needs2" : " uncov-week");
+    else if(isSun) cls += filled ? " covered" : " sun-open";
+    else cls += filled===WEEKDAY_SHIFTS.length ? " covered" : (filled>0 ? " needs2" : " uncov-week");
     if(mine) cls+=" mine";
     if(iamoff) cls+=" offday";
     if(editable) cls+=" editable";
     if(ds===tStr) cls+=" today";
     if(past && !skipped) cls+=" past";
 
-    let inner="", primTop="";
+    let inner="";
     if(skipped){ inner=`<div class="names"><span class="closed-label">no coverage</span></div>`; }
-    else if(isSat){ inner = satInner(cell); }
-    else{
-      inner = cellInner(cell, isSun?"sun":"");
-      if(cell.p) primTop=`<span class="prim-top ${cell.pinP?"locked":""}">${esc(firstName(nameOf(cell.p)))}</span>`;
-    }
+    else if(isSat){ inner=satInner(cell); }
+    else{ inner=cellInner(cell, ds, isSun?"sun":""); }
+
     const attr = ` data-ds="${ds}"${editable?' role="button" tabindex="0"':''}`;
     html+=`<div class="${cls}"${attr}>
-      <div class="cell-head"><span class="datenum">${d}</span>${primTop}</div>
+      <div class="cell-head"><span class="datenum">${d}</span></div>
       ${iamoff ? '<span class="offbadge">off</span>' : ''}
       ${inner}
     </div>`;
@@ -916,10 +1067,10 @@ function renderCalendar(){
     const dw=dowOf(ds);
     const act=()=>{
       if(data.skip[ds]){ toast("This day is marked no-coverage — right-click to restore it"); return; }
-      if(ds<tStr){ return; }                       // past days are locked
+      if(ds<tStr){ return; }
       if(dw===6){ openSaturdayDialog(ds); return; }
       if(!activeId){ toast("Choose your name first"); return; }
-      (dw===0) ? claimToggle(ds) : toggleOff(ds);
+      (dw===0) ? claimSundayFirstOpen(ds) : toggleDayOff(ds);
     };
     el.addEventListener("click",()=>{ if(suppressClick){suppressClick=false;return;} act(); });
     el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault(); act();} });
@@ -935,7 +1086,7 @@ function renderCalendar(){
     el.addEventListener("touchcancel",cancelLp);
   });
 
-  // summary pill
+  // summary pill — a weekday is "fully covered" when BOTH shifts have a primary
   let full=0, weekdayTotal=0, gaps=0;
   for(let d=1;d<=daysInMonth;d++){
     const dowIdx=(lead+(d-1))%7;
@@ -944,14 +1095,14 @@ function renderCalendar(){
     if(data.skip[ds]) continue;
     weekdayTotal++;
     const c=res[ds];
-    if(c&&c.p&&c.s) full++; else gaps++;
+    if(c&&c.shifts&&WEEKDAY_SHIFTS.every(sh=>c.shifts[sh]&&c.shifts[sh].p)) full++; else gaps++;
   }
   document.getElementById("countPill").textContent =
     `${full}/${weekdayTotal} weekdays fully covered${gaps?` · ${gaps} need attention`:""}`;
 
-  // primary-days ticker — how many days each engineer is primary this month
+  // primary-days ticker — total ★ days per engineer this month (both shifts)
   const primCount={};
-  Object.values(res).forEach(c=>{ if(c && c.p) primCount[c.p]=(primCount[c.p]||0)+1; });
+  Object.values(res).forEach(c=>{ if(c&&c.shifts) WEEKDAY_SHIFTS.forEach(sh=>{ const s=c.shifts[sh]; const p=s&&s.p; if(p) primCount[p]=(primCount[p]||0)+1; }); });
   const ticker=document.getElementById("primaryTicker");
   if(!data.engineers.length){ ticker.innerHTML=""; }
   else{
@@ -967,59 +1118,70 @@ function renderCalendar(){
 /* ---------- interactions ---------- */
 let suppressClick=false;
 
-async function toggleOff(ds){
+/* whole-day off toggle (marks/clears every configured weekday shift) — the default weekday click */
+async function toggleDayOff(ds){
   if(!activeId) return;
-  if(dowOf(ds)===6) return;            // Saturdays use satToggle
+  if(dowOf(ds)===6) return;
   await load();
-  const arr=(data.off[ds]||[]).slice();
-  const i=arr.indexOf(activeId);
-  if(i>=0){ arr.splice(i,1); }
+  const fully = isOffDay(ds,activeId);
+  if(fully){ WEEKDAY_SHIFTS.forEach(sh=>clearOff(ds,activeId,sh)); }
   else{
-    arr.push(activeId);
-    // can't be unavailable AND hold a claim that day — void my claims
-    if(data.pin[ds]){
-      if(data.pin[ds].p===activeId) delete data.pin[ds].p;
-      if(data.pin[ds].s===activeId) delete data.pin[ds].s;
-      if(!data.pin[ds].p && !data.pin[ds].s) delete data.pin[ds];
-    }
+    WEEKDAY_SHIFTS.forEach(sh=>setOff(ds,activeId,sh));
+    const p=data.pin[ds];
+    if(p){ WEEKDAY_SHIFTS.forEach(sh=>{ if(p[sh]===activeId) p[sh]=null; }); if(!ALL_SHIFTS.some(sh=>p[sh])) delete data.pin[ds]; }
   }
-  if(arr.length) data.off[ds]=arr; else delete data.off[ds];
-  await commitAndSave(i>=0 ? `You can cover ${prettyDate(ds)} again` : `Marked off ${prettyDate(ds)} — month reshuffled`);
+  cleanOff(ds);
+  await commitAndSave(fully ? `You can cover ${prettyDate(ds)} again` : `Marked off ${prettyDate(ds)} — month reshuffled`);
 }
 
-async function claimToggle(ds){        // click-to-claim for Sundays (Saturdays use openSaturdayDialog)
+/* per-shift off toggle (from the right-click menu) */
+async function toggleShiftOff(ds,sh){
   if(!activeId) return;
   await load();
-  const pin=Object.assign({}, data.pin[ds]);
-  if(pin.p===activeId){ delete pin.p; }
-  else if(pin.s===activeId){ delete pin.s; }
-  else if(!pin.p){ pin.p=activeId; }
-  else if(!pin.s){ pin.s=activeId; }
-  else { toast("This day already has two people — right-click to manage it"); return; }
-  if(data.off[ds]){ data.off[ds]=data.off[ds].filter(x=>x!==activeId); if(!data.off[ds].length) delete data.off[ds]; }
-  if(pin.p||pin.s) data.pin[ds]=pin; else delete data.pin[ds];
+  if(isOff(ds,activeId,sh)){ clearOff(ds,activeId,sh); }
+  else{
+    setOff(ds,activeId,sh);
+    const p=data.pin[ds];
+    if(p && p[sh]===activeId){ p[sh]=null; if(!p["1"]&&!p["2"]) delete data.pin[ds]; }
+  }
+  cleanOff(ds);
+  const nowOff=isOff(ds,activeId,sh);
+  await commitAndSave(nowOff ? `Marked off ${shiftWord(sh)} · ${prettyDate(ds)}` : `You can cover ${shiftWord(sh)} · ${prettyDate(ds)}`);
+}
+
+/* lock/release a primary claim for one shift */
+async function claimShift(ds,sh){
+  if(!activeId) return;
+  await load();
+  const p=Object.assign({"1":null,"2":null}, data.pin[ds]||{});
+  p[sh]=activeId;
+  data.pin[ds]=p;
+  clearOff(ds,activeId,sh); cleanOff(ds);
+  await commitAndSave(`Locked you in for ${shiftWord(sh)} · ${prettyDate(ds)}`);
+}
+async function releaseShift(ds,sh){
+  await load();
+  const p=data.pin[ds];
+  if(p){ p[sh]=null; if(!p["1"]&&!p["2"]) delete data.pin[ds]; }
+  await commitAndSave(`Released ${shiftWord(sh)} claim · ${prettyDate(ds)}`);
+}
+
+/* Sunday click: toggle yourself into the first open shift (Sundays are claim-only) */
+async function claimSundayFirstOpen(ds){
+  if(!activeId) return;
+  await load();
+  const p=Object.assign({}, data.pin[ds]||{});
+  const mineSh=WEEKDAY_SHIFTS.find(sh=>p[sh]===activeId);
+  if(mineSh){ p[mineSh]=null; }                                  // already claimed → release it
+  else{
+    const openSh=WEEKDAY_SHIFTS.find(sh=>!p[sh]);
+    if(!openSh){ toast(SINGLE_WD?"This Sunday is claimed — right-click to manage":"All Sunday shifts are claimed — right-click to manage"); return; }
+    p[openSh]=activeId;
+  }
+  ALL_SHIFTS.forEach(sh=>{ if(!p[sh]) delete p[sh]; });          // prune empties
+  if(Object.keys(p).length) data.pin[ds]=p; else delete data.pin[ds];
+  WEEKDAY_SHIFTS.forEach(sh=>clearOff(ds,activeId,sh)); cleanOff(ds);
   await commitAndSave(`${prettyDate(ds)} updated`);
-}
-
-async function claimSlot(ds,slot){
-  if(!activeId) return;
-  await load();
-  const pin=Object.assign({}, data.pin[ds]);
-  if(slot==="p" && pin.s===activeId) delete pin.s;   // moving from backup to primary
-  if(slot==="s" && pin.p===activeId) delete pin.p;
-  pin[slot]=activeId;
-  data.pin[ds]=pin;
-  if(data.off[ds]){ data.off[ds]=data.off[ds].filter(x=>x!==activeId); if(!data.off[ds].length) delete data.off[ds]; }
-  await commitAndSave(`Locked you in as ${slot==="p"?"primary ★":"backup"} for ${prettyDate(ds)}`);
-}
-
-async function releaseSlot(ds,slot){
-  await load();
-  if(data.pin[ds]){
-    delete data.pin[ds][slot];
-    if(!data.pin[ds].p && !data.pin[ds].s) delete data.pin[ds];
-  }
-  await commitAndSave(`Released ${slot==="p"?"primary":"backup"} claim for ${prettyDate(ds)}`);
 }
 
 /* Remove the current engineer's Saturday sign-up. */
@@ -1031,16 +1193,14 @@ async function satRemoveMe(ds){
   await commitAndSave(`Removed your ${prettyDate(ds)} sign-up`);
 }
 
-/* Saturday sign-up: open availability. Anyone can add themselves with the hours they can
-   work; multiple people and overlapping windows are fine. You only edit your own entry;
-   on save it merges into the latest shared list so concurrent sign-ups aren't lost. */
+/* Saturday sign-up dialog (open availability). */
 async function openSaturdayDialog(ds){
   if(dashboard) return;
   if(ds<todayStr()){ toast("Past Saturdays are locked as a record"); return; }
   if(data.skip[ds]){ toast("This day is marked no-coverage — right-click to restore it"); return; }
-  await load();                                   // show the latest shared state
+  await load();
   const existing = normSat(data.sat[ds]).find(e=>e.id===activeId) || null;
-  let mine = existing ? {from:existing.from, to:existing.to} : null;   // working copy of MY entry only
+  let mine = existing ? {from:existing.from, to:existing.to} : null;
 
   const ov=document.createElement("div"); ov.className="cd-overlay";
   const box=document.createElement("div"); box.className="cd-box sd-box";
@@ -1056,8 +1216,7 @@ async function openSaturdayDialog(ds){
 
   function render(){
     body.innerHTML="";
-    ok.disabled=false;                              // re-enabled unless the editor flags an invalid window
-    // roster of everyone signed up (latest others + my working entry)
+    ok.disabled=false;
     const others = normSat(data.sat[ds]).filter(e=>e.id!==activeId);
     const roster = others.concat(mine?[{id:activeId, from:mine.from, to:mine.to}]:[])
       .sort((a,b)=> a.from.localeCompare(b.from) || firstName(nameOf(a.id)).localeCompare(firstName(nameOf(b.id))));
@@ -1076,7 +1235,6 @@ async function openSaturdayDialog(ds){
     }
     body.appendChild(list);
 
-    // my editor
     const editor=document.createElement("div"); editor.className="sd-shift";
     if(!activeId){
       const p=document.createElement("div"); p.className="sd-holder"; p.textContent="Select your name at the top to add your hours.";
@@ -1135,7 +1293,7 @@ async function openSaturdayDialog(ds){
   const cancel=document.createElement("button"); cancel.className="cd-btn cd-cancel"; cancel.textContent="Cancel";
   const ok=document.createElement("button"); ok.className="cd-btn cd-save"; ok.textContent="Save";
   actions.append(cancel, ok); box.appendChild(actions);
-  render();                                        // build body; disables Save if the window is invalid
+  render();
   ov.appendChild(box); document.body.appendChild(ov);
 
   function onKey(e){ if(e.key==="Escape") done(null); }
@@ -1143,7 +1301,7 @@ async function openSaturdayDialog(ds){
   ov.addEventListener("mousedown",e=>{ if(e.target===ov) done(null); });
   cancel.onclick=()=>done(null);
   ok.onclick=()=>done(async()=>{
-    await load();                                   // merge into the freshest shared list
+    await load();
     let arr = normSat(data.sat[ds]).filter(e=>e.id!==activeId);
     if(activeId && mine){
       let {from,to}=mine; if(!from) from=SAT_DAY.start; if(!to) to=SAT_DAY.end;
@@ -1160,7 +1318,7 @@ async function openSaturdayDialog(ds){
 async function skipDay(ds){
   await load();
   data.skip[ds]=true;
-  delete data.assign[ds];              // drop any resolved assignment so it greys out
+  delete data.assign[ds];
   await commitAndSave(`${prettyDate(ds)} marked no-coverage — skipped by balancing`);
 }
 async function restoreDay(ds){
@@ -1182,14 +1340,12 @@ function onDocDown(e){ if(menuEl && !menuEl.contains(e.target)) closeMenu(); }
 function onMenuKey(e){ if(e.key==="Escape") closeMenu(); }
 function openMenu(ds, x, y){
   closeMenu();
-  if(dashboard) return;                // view-only
+  if(dashboard) return;
   const dw=dowOf(ds);
   const isSun=dw===0, isSat=dw===6, isWeekday=!isSun&&!isSat;
   const past = ds<todayStr();
   const skipped = !!data.skip[ds];
   const pin = data.pin[ds]||{};
-  const iPrim = pin.p===activeId, iSec = pin.s===activeId;
-  const off = activeId && isOff(ds,activeId);
 
   const menu=document.createElement("div"); menu.className="ctxmenu";
   const head=document.createElement("div"); head.className="ctx-head"; head.textContent=prettyDate(ds); menu.appendChild(head);
@@ -1201,35 +1357,40 @@ function openMenu(ds, x, y){
   };
   const addSep=()=>{ const d=document.createElement("div"); d.className="ctx-sep"; menu.appendChild(d); };
   const addInfo=t=>{ const d=document.createElement("div"); d.className="ctx-info"; d.textContent=t; menu.appendChild(d); };
-  // Sundays already default to no-coverage, so the skip toggle is redundant for them
   const offerSkip = !isSun;
 
   if(skipped){
-    // day is closed — reopen it (works on past days too; team-wide, no name needed)
     addItem("Restore coverage","Puts this day back into the rotation",()=>restoreDay(ds));
   }else if(past){
-    // personal actions stay locked in the past, but weekdays/Saturdays can still be closed
     addInfo("Past days are locked as a record.");
     if(offerSkip){ addSep(); addItem("No coverage needed","Greys the day out; skipped by balancing",()=>skipDay(ds)); }
+  }else if(isSat){
+    const signedUp = normSat(data.sat[ds]).some(e=>e.id===activeId);
+    addItem("Sign up / edit hours…", activeId?"Add the hours you can work":"View who's available",()=>openSaturdayDialog(ds));
+    if(signedUp) addItem("Remove my sign-up","Takes you off this Saturday",()=>satRemoveMe(ds));
+    addSep(); addItem("No coverage needed","Greys the day out; skipped by balancing",()=>skipDay(ds));
+  }else if(!activeId){
+    addInfo(isSun ? "Select your name to claim this Sunday." : "Select your name to mark yourself off or claim shifts.");
+    if(offerSkip){ addSep(); addItem("No coverage needed","Greys the day out; skipped by balancing",()=>skipDay(ds)); }
   }else{
-    if(isSat){
-      // Saturdays: open availability sign-up (its own dialog)
-      const signedUp = normSat(data.sat[ds]).some(e=>e.id===activeId);
-      addItem("Sign up / edit hours…", activeId?"Add the hours you can work":"View who's available",()=>openSaturdayDialog(ds));
-      if(signedUp) addItem("Remove my sign-up","Takes you off this Saturday",()=>satRemoveMe(ds));
-    }else if(!activeId){
-      addInfo(isSun ? "Select your name to claim this Sunday." : "Select your name to mark yourself off or claim shifts.");
-    }else{
-      if(isWeekday){
-        if(off) addItem("I can cover this again","Removes your unavailable mark",()=>toggleOff(ds));
-        else addItem("Mark me unavailable","Reshuffles the month to fill it",()=>toggleOff(ds));
-      }
-      if(iPrim) addItem("Release primary claim","Back to no coverage",()=>releaseSlot(ds,"p"));
-      else addItem("Claim primary ★", isSun?"Opens this Sunday and locks you in":"Locks you in — survives reshuffles",()=>claimSlot(ds,"p"));
-      if(iSec) addItem("Release backup claim","Back to no coverage",()=>releaseSlot(ds,"s"));
-      else addItem("Claim backup (2nd)","Locks you in as backup",()=>claimSlot(ds,"s"));
+    // availability (weekdays only)
+    if(isWeekday){
+      if(isOffDay(ds,activeId)) addItem("I can cover this again", SINGLE_WD?"Removes your off mark":"Clears every shift",()=>toggleDayOff(ds));
+      else addItem("Can't cover — whole day", SINGLE_WD?"Marks you off; reshuffles":"Marks all shifts off; reshuffles",()=>toggleDayOff(ds));
+      if(!SINGLE_WD) WEEKDAY_SHIFTS.forEach(sh=>{      // per-shift marks only matter with 2+ shifts
+        const off=isOff(ds,activeId,sh);
+        addItem(off?`I can cover ${SHIFT_LABEL[sh]} shift`:`Can't cover — ${SHIFT_LABEL[sh]} shift`,
+          off?"Removes just this shift's mark":"Off for this shift only",()=>toggleShiftOff(ds,sh));
+      });
+      addSep();
     }
-    // team-wide action — available with or without a selected name (not for Sundays)
+    // per-shift claim / release
+    WEEKDAY_SHIFTS.forEach(sh=>{
+      const claimLabel = SINGLE_WD ? "Claim ★" : `Claim ${SHIFT_LABEL[sh]} shift ★`;
+      const relLabel   = SINGLE_WD ? "Release claim" : `Release ${SHIFT_LABEL[sh]} claim`;
+      if(pin[sh]===activeId) addItem(relLabel,"Back to auto-assign",()=>releaseShift(ds,sh));
+      else addItem(claimLabel, isSun?"Opens this Sunday shift":"Locks you in — survives reshuffles",()=>claimShift(ds,sh));
+    });
     if(offerSkip){ addSep(); addItem("No coverage needed","Greys the day out; skipped by balancing",()=>skipDay(ds)); }
   }
 
@@ -1281,10 +1442,15 @@ document.getElementById("removeProfile").addEventListener("click",async()=>{
   if(!(await confirmDialog(`Remove ${nm} from the team? Their off-marks and claims are cleared and the schedule reshuffles.`, "Remove engineer"))) return;
   await load();
   data.engineers=data.engineers.filter(e=>e.id!==id);
-  Object.keys(data.off).forEach(k=>{ data.off[k]=data.off[k].filter(x=>x!==id); if(!data.off[k].length) delete data.off[k]; });
-  Object.keys(data.pin).forEach(k=>{ if(data.pin[k].p===id) delete data.pin[k].p; if(data.pin[k].s===id) delete data.pin[k].s; if(!data.pin[k].p&&!data.pin[k].s) delete data.pin[k]; });
-  Object.keys(data.assign).forEach(k=>{ if(data.assign[k].p===id) data.assign[k].p=null; if(data.assign[k].s===id) data.assign[k].s=null; if(!data.assign[k].p&&!data.assign[k].s) delete data.assign[k]; });
+  Object.keys(data.off).forEach(k=>{
+    SHIFT_KEYS.forEach(sh=>{ if(Array.isArray(data.off[k][sh])) data.off[k][sh]=data.off[k][sh].filter(x=>x!==id); });
+    if((!data.off[k]["1"]||!data.off[k]["1"].length)&&(!data.off[k]["2"]||!data.off[k]["2"].length)) delete data.off[k];
+  });
+  Object.keys(data.pin).forEach(k=>{ SHIFT_KEYS.forEach(sh=>{ if(data.pin[k][sh]===id) data.pin[k][sh]=null; }); if(!data.pin[k]["1"]&&!data.pin[k]["2"]) delete data.pin[k]; });
+  Object.keys(data.assign).forEach(k=>{ SHIFT_KEYS.forEach(sh=>{ if(data.assign[k][sh]===id) data.assign[k][sh]=null; }); if(!data.assign[k]["1"]&&!data.assign[k]["2"]) delete data.assign[k]; });
   Object.keys(data.sat).forEach(k=>{ if(Array.isArray(data.sat[k])){ data.sat[k]=data.sat[k].filter(e=>e.id!==id); if(!data.sat[k].length) delete data.sat[k]; } });
+  if(data.committed&&data.committed.targets) delete data.committed.targets[id];
+  if(data.priority&&data.priority.tiers) delete data.priority.tiers[id];
   activeId=null;
   await commitAndSave(`Removed ${nm}`);
   buildProfiles();
@@ -1305,16 +1471,16 @@ document.getElementById("todayBtn").addEventListener("click",()=>{
 document.getElementById("monthSel").addEventListener("change",e=>{viewMonth=+e.target.value;renderCalendar();});
 document.getElementById("yearSel").addEventListener("change",e=>{viewYear=+e.target.value;renderCalendar();});
 
-/* ---------- re-assign (recompute + persist current month) ---------- */
+/* ---------- re-assign ---------- */
 async function reassignMonth(){
   await load();
   const r=resolveMonth(viewYear,viewMonth);
   applyResolved(r);
   await save();
   renderCalendar();
-  const spread=Object.keys(r.loadP).sort((a,b)=>r.loadP[b]-r.loadP[a])
+  const spread=Object.keys(r.loadP).filter(id=>r.loadP[id]>0).sort((a,b)=>r.loadP[b]-r.loadP[a])
     .map(id=>`${firstName(nameOf(id))}·${r.loadP[id]}`).join("  ");
-  toast(`Re-assigned ${MONTHS[viewMonth]}${spread?` — primaries: ${spread}`:""}`);
+  toast(`Re-assigned ${MONTHS[viewMonth]}${spread?` — ★ ${spread}`:""}`);
 }
 document.getElementById("miBalance").addEventListener("click",reassignMonth);
 
@@ -1323,33 +1489,36 @@ function exportCSV(){
   const {res}=resolveMonth(viewYear,viewMonth);
   const daysInMonth=new Date(viewYear,viewMonth+1,0).getDate();
   const lead=new Date(viewYear,viewMonth,1).getDay();
-  const rows=[["Date","Weekday","Primary","Backup","Status"]];
+  const shiftCols = WEEKDAY_SHIFTS.map(sh=> SINGLE_WD ? "Coverage" : `${SHIFT_LABEL[sh]} Shift`);
+  const blanks = WEEKDAY_SHIFTS.map(()=>"");
+  const rows=[["Date","Weekday",...shiftCols,"Status"]];
   for(let d=1;d<=daysInMonth;d++){
     const dowIdx=(lead+(d-1))%7;
     const ds=dateStr(viewYear,viewMonth,d);
-    if(data.skip[ds]){ rows.push([ds, DOW[dowIdx], "", "", "No coverage needed"]); continue; }
+    if(data.skip[ds]){ rows.push([ds, DOW[dowIdx], ...blanks, "No coverage needed"]); continue; }
     const c=res[ds]; const isSat=dowIdx===6, isSun=dowIdx===0;
     if(isSat){
       const list=(c.list||[]).slice().sort((a,b)=>a.from.localeCompare(b.from));
       const txt=list.map(e=>`${nameOf(e.id)} ${fmtTime(e.from)}–${fmtTime(e.to)}`).join("; ");
       const status = list.length ? `Saturday — ${list.length} available` : "Saturday — no sign-ups";
-      rows.push([ds, DOW[dowIdx], txt, "", status]);
+      const satCells = blanks.slice(); satCells[0]=txt;      // availability text in the first shift column
+      rows.push([ds, DOW[dowIdx], ...satCells, status]);
       continue;
     }
-    if(isSun && !(c&&c.p)) continue;                 // omit unclaimed Sundays
-    const pTxt=c.p?(nameOf(c.p)+(c.pinP?" (claimed)":"")):"";
-    const sTxt=c.s?(nameOf(c.s)+(c.pinS?" (claimed)":"")):"";
+    const cells = WEEKDAY_SHIFTS.map(sh=>{ const s=c.shifts[sh]; const p=s&&s.p; return p?(nameOf(p)+(s.pinP?" (claimed)":"")):""; });
+    const nFilled = cells.filter(Boolean).length;
+    if(isSun && !nFilled) continue;                          // omit unclaimed Sundays
     let status;
-    if(isSun) status = "Sunday covered";
-    else status = (c.p&&c.s) ? "Covered" : (c.p ? "Needs backup" : "Uncovered");
-    rows.push([ds, DOW[dowIdx], pTxt, sTxt, status]);
+    if(isSun) status="Sunday";
+    else status = nFilled===WEEKDAY_SHIFTS.length ? "Covered" : (nFilled>0 ? "Partial — a shift is open" : "Uncovered");
+    rows.push([ds, DOW[dowIdx], ...cells, status]);
   }
   if(rows.length<=1){ toast("Nothing to export for this month"); return; }
   const csv=rows.map(r=>r.map(c=>{const v=String(c);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(",")).join("\n");
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
-  a.href=url; a.download=`second-shift-${MONTHS[viewMonth]}-${viewYear}.csv`;
+  a.href=url; a.download=`shift-coverage-${MONTHS[viewMonth]}-${viewYear}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   toast("CSV downloaded");
@@ -1367,8 +1536,8 @@ function downloadFile(filename, text, type){
 }
 function backupData(){
   const stamp=`${viewYear}-${pad(viewMonth+1)}-${pad(new Date().getDate())}`;
-  const payload=JSON.stringify({ version:4, savedAt:new Date().toISOString(), data }, null, 2);
-  downloadFile(`second-shift-backup-${stamp}.json`, payload, "application/json");
+  const payload=JSON.stringify({ version:6, savedAt:new Date().toISOString(), data }, null, 2);
+  downloadFile(`shift-coverage-backup-${stamp}.json`, payload, "application/json");
   toast("Backup downloaded — keep this file safe");
 }
 async function restoreData(file){
@@ -1378,8 +1547,9 @@ async function restoreData(file){
   const d = parsed && parsed.data ? parsed.data : parsed;
   if(!d || typeof d!=="object" || !Array.isArray(d.engineers)){ toast("That doesn't look like a schedule backup"); return; }
   if(!(await confirmDialog("Restore this backup? It replaces the entire current schedule for everyone.", "Restore backup"))) return;
-  data = { engineers:d.engineers||[], off:d.off||{}, pin:d.pin||{}, assign:d.assign||{}, skip:d.skip||{}, sat:d.sat||{}, committed:normCommitted(d.committed) };
-  migrateSaturdays();                  // upgrade any pre-v3 backup that still holds Saturdays in pin
+  data = { engineers:d.engineers||[], off:d.off||{}, pin:d.pin||{}, assign:d.assign||{}, skip:d.skip||{}, sat:d.sat||{}, committed:normCommitted(d.committed), priority:normPriority(d.priority) };
+  migrateSaturdays();
+  migrateShifts();
   await save();
   await refreshBoard(false);
   toast("Backup restored");
@@ -1396,8 +1566,8 @@ async function clearMonth(){
   for(let d=1;d<=daysInMonth;d++){
     const dowIdx=(lead+(d-1))%7; if(dowIdx===0) continue;
     const ds=dateStr(viewYear,viewMonth,d); keys.push(ds);
-    (data.off[ds]||[]).forEach(id=>presentIds.add(id));
-    if(data.pin[ds]){ if(data.pin[ds].p) presentIds.add(data.pin[ds].p); if(data.pin[ds].s) presentIds.add(data.pin[ds].s); }
+    if(data.off[ds]) SHIFT_KEYS.forEach(sh=>{ (data.off[ds][sh]||[]).forEach(id=>presentIds.add(id)); });
+    if(data.pin[ds]) SHIFT_KEYS.forEach(sh=>{ if(data.pin[ds][sh]) presentIds.add(data.pin[ds][sh]); });
     if(Array.isArray(data.sat[ds])) data.sat[ds].forEach(e=>presentIds.add(e.id));
   }
   const engineersInMonth=data.engineers.filter(e=>presentIds.has(e.id)).sort((a,b)=>a.name.localeCompare(b.name));
@@ -1409,9 +1579,9 @@ async function clearMonth(){
     if(choice==="__all__"){
       delete data.off[ds]; delete data.pin[ds]; delete data.assign[ds]; delete data.skip[ds]; delete data.sat[ds];
     }else{
-      if(data.off[ds]){ data.off[ds]=data.off[ds].filter(id=>id!==choice); if(!data.off[ds].length) delete data.off[ds]; }
-      if(data.pin[ds]){ if(data.pin[ds].p===choice) delete data.pin[ds].p; if(data.pin[ds].s===choice) delete data.pin[ds].s; if(!data.pin[ds].p&&!data.pin[ds].s) delete data.pin[ds]; }
-      if(data.assign[ds]){ if(data.assign[ds].p===choice) data.assign[ds].p=null; if(data.assign[ds].s===choice) data.assign[ds].s=null; if(!data.assign[ds].p&&!data.assign[ds].s) delete data.assign[ds]; }
+      if(data.off[ds]){ SHIFT_KEYS.forEach(sh=>{ if(Array.isArray(data.off[ds][sh])) data.off[ds][sh]=data.off[ds][sh].filter(id=>id!==choice); }); cleanOff(ds); }
+      if(data.pin[ds]){ SHIFT_KEYS.forEach(sh=>{ if(data.pin[ds][sh]===choice) data.pin[ds][sh]=null; }); if(!data.pin[ds]["1"]&&!data.pin[ds]["2"]) delete data.pin[ds]; }
+      if(data.assign[ds]){ SHIFT_KEYS.forEach(sh=>{ if(data.assign[ds][sh]===choice) data.assign[ds][sh]=null; }); if(!data.assign[ds]["1"]&&!data.assign[ds]["2"]) delete data.assign[ds]; }
       if(Array.isArray(data.sat[ds])){ data.sat[ds]=data.sat[ds].filter(e=>e.id!==choice); if(!data.sat[ds].length) delete data.sat[ds]; }
     }
   });
@@ -1430,13 +1600,35 @@ async function refreshBoard(announce){
 document.getElementById("refreshBtn").addEventListener("click",()=>refreshBoard(true));
 document.getElementById("themeToggle").addEventListener("click",toggleTheme);
 document.getElementById("dashToggle").addEventListener("click",toggleDashboard);
+(function(){ const b=document.getElementById("lockBtn"); if(b){ if(GATE) b.addEventListener("click",lockNow); else b.style.display="none"; } })();
 
 /* ---------- toast ---------- */
 let toastTimer;
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2400);}
 
-/* ---------- custom confirm (native confirm() is blocked in the sandbox) ---------- */
+/* ---------- password prompt (unlock editing) ---------- */
+function passwordDialog(){
+  return new Promise(resolve=>{
+    const ov=document.createElement("div"); ov.className="cd-overlay";
+    const box=document.createElement("div"); box.className="cd-box";
+    const p=document.createElement("p"); p.className="cd-msg"; p.textContent="Enter the team password to unlock editing.";
+    const inp=document.createElement("input"); inp.type="password"; inp.className="cd-select"; inp.placeholder="Password"; inp.autocomplete="current-password";
+    const actions=document.createElement("div"); actions.className="cd-actions";
+    const cancel=document.createElement("button"); cancel.className="cd-btn cd-cancel"; cancel.textContent="Cancel";
+    const ok=document.createElement("button"); ok.className="cd-btn cd-save"; ok.textContent="Unlock";
+    actions.append(cancel, ok); box.append(p, inp, actions); ov.append(box); document.body.append(ov);
+    const done=v=>{ document.removeEventListener("keydown",onKey); ov.remove(); resolve(v); };
+    cancel.onclick=()=>done(null);
+    ok.onclick=()=>done(inp.value);
+    ov.addEventListener("mousedown",e=>{ if(e.target===ov) done(null); });
+    function onKey(e){ if(e.key==="Escape") done(null); else if(e.key==="Enter") done(inp.value); }
+    document.addEventListener("keydown",onKey);
+    inp.focus();
+  });
+}
+
+/* ---------- custom confirm ---------- */
 function confirmDialog(message, okLabel){
   return new Promise(resolve=>{
     const ov=document.createElement("div"); ov.className="cd-overlay";
@@ -1456,7 +1648,6 @@ function confirmDialog(message, okLabel){
   });
 }
 
-/* choice dialog: reset whole month, or clear one engineer's marks/claims */
 function clearScopeDialog(monthLabel, engineersInMonth){
   return new Promise(resolve=>{
     const ov=document.createElement("div"); ov.className="cd-overlay";
@@ -1479,36 +1670,48 @@ function clearScopeDialog(monthLabel, engineersInMonth){
   });
 }
 
-/* ---------- coverage rules (guaranteed weekly primary days) ---------- */
+/* ---------- coverage rules (guaranteed weekly primary days, per shift) ---------- */
 function committedDialog(){
   return new Promise(resolve=>{
     const cur = data.committed || {enabled:false, targets:{}};
     const ov=document.createElement("div"); ov.className="cd-overlay";
     const box=document.createElement("div"); box.className="cd-box";
     const p=document.createElement("p"); p.className="cd-msg";
-    p.innerHTML=`<b>Guaranteed weekly primary days.</b> Give an engineer a number and they'll be auto-assigned that many <b>★ primary</b> days every week — spread across the week where possible, back-to-back allowed only for them, and never on a day they've marked off. If a week doesn't have that many open days, they simply get fewer. Everyone else balances normally around them. Set 0 for normal balancing.`;
+    p.innerHTML=`<b>Guaranteed weekly primary days.</b> Give an engineer a number for a shift and they'll be auto-assigned that many <b>★ primary</b> days on that shift every week — spread across the week where possible, back-to-back allowed only for them, and never on a shift they've marked off. If a week is short on open days they simply get fewer. Everyone else balances normally around them. Set 0 for normal balancing.`;
     const enWrap=document.createElement("label"); enWrap.style.cssText="display:flex;align-items:center;gap:8px;margin:2px 0 12px;font-size:13px;font-weight:600;";
     const en=document.createElement("input"); en.type="checkbox"; en.checked=!!cur.enabled; en.style.cssText="width:16px;height:16px;";
     enWrap.append(en, document.createTextNode("Enable guaranteed coverage"));
+    const hdr=document.createElement("div"); hdr.style.cssText="display:flex;justify-content:flex-end;gap:12px;font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 2px 4px;";
+    hdr.innerHTML=WEEKDAY_SHIFTS.map(sh=>`<span style="width:60px;text-align:center;">${SINGLE_WD?"★/wk":SHIFT_LABEL[sh]}</span>`).join("");
     const rows=document.createElement("div"); rows.style.cssText="display:flex;flex-direction:column;gap:7px;max-height:230px;overflow:auto;";
     const inputs={};
     data.engineers.forEach(e=>{
       const row=document.createElement("label"); row.style.cssText="display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;";
-      const nm=document.createElement("span"); nm.textContent=e.name;
-      const inp=document.createElement("input"); inp.type="number"; inp.min="0"; inp.max="5"; inp.step="1";
-      inp.value=String((cur.targets&&cur.targets[e.id])||0);
-      inp.style.cssText="width:60px;padding:5px 8px;text-align:center;border-radius:7px;border:1px solid var(--line-strong);background:var(--card);color:inherit;font:inherit;";
-      inputs[e.id]=inp; row.append(nm, inp); rows.append(row);
+      const nm=document.createElement("span"); nm.textContent=e.name; nm.style.cssText="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+      const wrap=document.createElement("span"); wrap.style.cssText="display:flex;gap:12px;flex:none;";
+      const mk=sh=>{
+        const inp=document.createElement("input"); inp.type="number"; inp.min="0"; inp.max="5"; inp.step="1";
+        inp.value=String((cur.targets&&cur.targets[e.id]&&cur.targets[e.id][sh])||0);
+        inp.style.cssText="width:60px;padding:5px 8px;text-align:center;border-radius:7px;border:1px solid var(--line-strong);background:var(--card);color:inherit;font:inherit;";
+        return inp;
+      };
+      inputs[e.id]={};
+      WEEKDAY_SHIFTS.forEach(sh=>{ const inp=mk(sh); inputs[e.id][sh]=inp; wrap.append(inp); });
+      row.append(nm, wrap); rows.append(row);
     });
     const actions=document.createElement("div"); actions.className="cd-actions";
     const cancel=document.createElement("button"); cancel.className="cd-btn cd-cancel"; cancel.textContent="Cancel";
     const ok=document.createElement("button"); ok.className="cd-btn cd-ok"; ok.textContent="Save & apply";
-    actions.append(cancel, ok); box.append(p, enWrap, rows, actions); ov.append(box); document.body.append(ov);
+    actions.append(cancel, ok); box.append(p, enWrap, hdr, rows, actions); ov.append(box); document.body.append(ov);
     const done=v=>{ document.removeEventListener("keydown",onKey); ov.remove(); resolve(v); };
     cancel.onclick=()=>done(null);
     ok.onclick=()=>{
       const targets={};
-      Object.keys(inputs).forEach(id=>{ const n=Math.max(0,Math.min(5, parseInt(inputs[id].value,10)||0)); if(n>0) targets[id]=n; });
+      Object.keys(inputs).forEach(id=>{
+        const t = (cur.targets && cur.targets[id]) ? Object.assign({}, cur.targets[id]) : {};  // keep any inactive-shift value
+        WEEKDAY_SHIFTS.forEach(sh=>{ t[sh]=Math.max(0,Math.min(5, parseInt(inputs[id][sh].value,10)||0)); });
+        if(ALL_SHIFTS.some(sh=>(t[sh]|0)>0)) targets[id]=t;
+      });
       done({enabled:en.checked, targets});
     };
     ov.addEventListener("mousedown",e=>{ if(e.target===ov) done(null); });
@@ -1519,7 +1722,7 @@ function committedDialog(){
 async function editCoverageRules(){
   const next=await committedDialog();
   if(next===null) return;
-  await load();                        // merge latest shared state first
+  await load();
   data.committed=next;
   const r=resolveMonth(viewYear,viewMonth); applyResolved(r);
   await save();
@@ -1528,6 +1731,58 @@ async function editCoverageRules(){
   toast(on ? "Coverage rules applied" : "Coverage rules off — normal balancing");
 }
 document.getElementById("miRules").addEventListener("click",editCoverageRules);
+
+/* ---------- priority tiers (who fills first, who backs up) ---------- */
+function priorityDialog(){
+  return new Promise(resolve=>{
+    const cur = data.priority || {enabled:false, tiers:{}};
+    const ov=document.createElement("div"); ov.className="cd-overlay";
+    const box=document.createElement("div"); box.className="cd-box";
+    const p=document.createElement("p"); p.className="cd-msg";
+    p.innerHTML=`<b>Fill priority.</b> Give each engineer a tier — <b>1 = filled first</b>, 2 = next, and so on. People in the same tier share the load evenly; a lower tier is only used on a day when everyone in the higher tiers is unavailable. Leave at 0 to make someone unranked (they fill last, after all numbered tiers). <b>Heads up:</b> with priority on, your top tier carries most of the work and the rest act as backups — that's the point, but it isn't an even split. Turn it off any time for normal balancing.`;
+    const enWrap=document.createElement("label"); enWrap.style.cssText="display:flex;align-items:center;gap:8px;margin:2px 0 12px;font-size:13px;font-weight:600;";
+    const en=document.createElement("input"); en.type="checkbox"; en.checked=!!cur.enabled; en.style.cssText="width:16px;height:16px;";
+    enWrap.append(en, document.createTextNode("Enable priority tiers"));
+    const hdr=document.createElement("div"); hdr.style.cssText="display:flex;justify-content:flex-end;font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 2px 4px;";
+    hdr.innerHTML=`<span style="width:60px;text-align:center;">Tier</span>`;
+    const rows=document.createElement("div"); rows.style.cssText="display:flex;flex-direction:column;gap:7px;max-height:230px;overflow:auto;";
+    const inputs={};
+    data.engineers.slice().sort((a,b)=>rosterIndex(a.id)-rosterIndex(b.id)).forEach(e=>{
+      const row=document.createElement("label"); row.style.cssText="display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;";
+      const nm=document.createElement("span"); nm.textContent=e.name; nm.style.cssText="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+      const inp=document.createElement("input"); inp.type="number"; inp.min="0"; inp.max="9"; inp.step="1";
+      inp.value=String((cur.tiers&&cur.tiers[e.id])||0);
+      inp.style.cssText="width:60px;padding:5px 8px;text-align:center;border-radius:7px;border:1px solid var(--line-strong);background:var(--card);color:inherit;font:inherit;";
+      inputs[e.id]=inp; row.append(nm, inp); rows.append(row);
+    });
+    const actions=document.createElement("div"); actions.className="cd-actions";
+    const cancel=document.createElement("button"); cancel.className="cd-btn cd-cancel"; cancel.textContent="Cancel";
+    const ok=document.createElement("button"); ok.className="cd-btn cd-ok"; ok.textContent="Save & apply";
+    actions.append(cancel, ok); box.append(p, enWrap, hdr, rows, actions); ov.append(box); document.body.append(ov);
+    const done=v=>{ document.removeEventListener("keydown",onKey); ov.remove(); resolve(v); };
+    cancel.onclick=()=>done(null);
+    ok.onclick=()=>{
+      const tiers={};
+      Object.keys(inputs).forEach(id=>{ const n=Math.max(0,Math.min(9, parseInt(inputs[id].value,10)||0)); if(n>0) tiers[id]=n; });
+      done({enabled:en.checked, tiers});
+    };
+    ov.addEventListener("mousedown",e=>{ if(e.target===ov) done(null); });
+    function onKey(e){ if(e.key==="Escape") done(null); }
+    document.addEventListener("keydown",onKey);
+  });
+}
+async function editPriority(){
+  const next=await priorityDialog();
+  if(next===null) return;
+  await load();
+  data.priority=next;
+  const r=resolveMonth(viewYear,viewMonth); applyResolved(r);
+  await save();
+  buildProfiles(); renderCalendar();
+  const on = next.enabled && Object.keys(next.tiers).length;
+  toast(on ? "Priority tiers applied" : "Priority off — normal balancing");
+}
+document.getElementById("miPriority").addEventListener("click",editPriority);
 
 /* ---------- actions dropdown ---------- */
 function closeToolMenu(){
@@ -1539,7 +1794,6 @@ document.getElementById("menuBtn").addEventListener("click",e=>{
   const p=document.getElementById("menuPop"), open=p.classList.toggle("open");
   document.getElementById("menuBtn").setAttribute("aria-expanded", open?"true":"false");
 });
-// clicking any item runs its own handler (already wired) then closes the menu
 document.getElementById("menuPop").addEventListener("click",e=>{ if(e.target.closest("button")) closeToolMenu(); });
 document.addEventListener("click",e=>{ if(!e.target.closest(".menu-wrap")) closeToolMenu(); });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeToolMenu(); });
@@ -1548,7 +1802,8 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeToolMenu(); }
 (async function(){
   buildMonthYear();
   try{ const r=localStorage.getItem(THEME_KEY); if(r) applyTheme(r); }catch(e){}
-  try{ if(!dashboard){ const r=localStorage.getItem(DASH_KEY); if(r==="1"){ applyDash(true); activeId=null; } } }catch(e){}
+  if(GATE && !authorized){ applyDash(true); activeId=null; }   // locked until the password is entered
+  else { try{ if(!dashboard){ const r=localStorage.getItem(DASH_KEY); if(r==="1"){ applyDash(true); activeId=null; } } }catch(e){} }
   await load();
   if(!data.engineers.length){
     data.engineers = DEFAULT_ENGINEERS.map(n=>({id:uid(),name:n}));
