@@ -10,7 +10,9 @@ name: Daily second-shift coverage → Teams
 on:
   schedule:
    # - cron: "0,30 21-23 * * *"      # evening re-check window (announce + updates)
-    - cron: "*/30 * * * *"
+   # - cron: "*/30 * * * *"
+    - cron: "*/30 16-23 * * *"
+    - cron: "0 0-4 * * *"
   workflow_dispatch:                # manual run button (uses the inputs below)
     inputs:
       dry_run:
