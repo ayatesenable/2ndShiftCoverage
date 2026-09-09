@@ -1,0 +1,52 @@
+name: Daily second-shift coverage → Teams
+
+# Announces TOMORROW's coverage to the Teams chat and re-posts an update if it changes.
+# The script (scripts/post_primary.py) dedups via a small Firebase state node, so running
+# every 30 min is safe — you get one announcement plus updates only when something changes.
+#
+# Timing: crons are UTC. The window below is chosen to land in the America/New_York evening
+# for BOTH EDT (UTC-4) and EST (UTC-5), so "tomorrow" is always the next calendar day when it
+# fires. 21:00–23:30 UTC ≈ 5:00–7:30pm EDT / 4:00–6:30pm EST. Widen or shift as you like.
+on:
+  schedule:
+    - cron: "0,30 21-23 * * *"      # evening re-check window (announce + updates)
+  workflow_dispatch:                # manual run button (uses the inputs below)
+    inputs:
+      dry_run:
+        description: "Print the message instead of posting (1 = yes)"
+        required: false
+        default: "0"
+      date_override:
+        description: "Target a specific day YYYY-MM-DD (blank = tomorrow)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: teams-coverage        # never let two polls race each other
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Post tomorrow's coverage
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          # Only needed if your database rules require auth to read the published path
+          # (leave the secret unset if that path is world-readable).
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          # Optional overrides — defaults in the script already match the deployed calendar:
+          # FIREBASE_DB_URL: ${{ vars.FIREBASE_DB_URL }}
+          # FIREBASE_BASE_PATH: ${{ vars.FIREBASE_BASE_PATH }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          DATE_OVERRIDE: ${{ github.event.inputs.date_override }}
+        run: python scripts/post_primary.py
