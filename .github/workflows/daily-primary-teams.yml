@@ -9,7 +9,8 @@ name: Daily second-shift coverage → Teams
 # fires. 21:00–23:30 UTC ≈ 5:00–7:30pm EDT / 4:00–6:30pm EST. Widen or shift as you like.
 on:
   schedule:
-    - cron: "0,30 21-23 * * *"      # evening re-check window (announce + updates)
+   # - cron: "0,30 21-23 * * *"      # evening re-check window (announce + updates)
+    - cron: "*/30 * * * *"
   workflow_dispatch:                # manual run button (uses the inputs below)
     inputs:
       dry_run:
