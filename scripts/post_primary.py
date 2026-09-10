@@ -42,6 +42,7 @@ TOKEN     = os.environ.get("FIREBASE_TOKEN", "").strip()
 WEBHOOK   = os.environ.get("TEAMS_WEBHOOK_URL", "").strip()
 TZ        = os.environ.get("ANNOUNCE_TZ", "America/New_York")
 POST_HOLIDAYS = os.environ.get("POST_HOLIDAYS", "") == "1"
+ANNOUNCE_HOUR = int(os.environ.get("ANNOUNCE_HOUR", "19"))  # 19 = 7PM: evening announce boundary
 DRY_RUN   = os.environ.get("DRY_RUN", "") == "1"
 DATE_OVERRIDE = os.environ.get("DATE_OVERRIDE", "").strip()
 
@@ -49,6 +50,8 @@ WEEKDAY_FULL = {"Mon": "Monday", "Tue": "Tuesday", "Wed": "Wednesday",
                 "Thu": "Thursday", "Fri": "Friday", "Sat": "Saturday", "Sun": "Sunday"}
 MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+# Spelled-out shift word for the announcement header ("First-shift coverage …").
+SHIFT_WORD = {"1": "First", "2": "Second"}
 
 
 # ---- firebase REST ----------------------------------------------------------
@@ -71,14 +74,22 @@ def fb_put(path, value):
 
 # ---- date helpers -----------------------------------------------------------
 def target_date():
+    """Which coverage day this run is about. The announce window for a day D runs from
+    7PM the evening before through ~1PM on D, so a single day is tracked continuously across
+    midnight (no rollover to the next day mid-window):
+      - at/after 7PM -> evening before D; announce tomorrow
+      - before 7PM   -> D's own morning; keep tracking today
+    The cron only fires inside that window, so the 1PM-7PM gap never actually runs."""
     if DATE_OVERRIDE:
         return DATE_OVERRIDE
     now = datetime.now(ZoneInfo(TZ))
-    return (now + timedelta(days=1)).date().isoformat()
+    if now.hour >= ANNOUNCE_HOUR:
+        return (now + timedelta(days=1)).date().isoformat()
+    return now.date().isoformat()
 
 def pretty(ds, dow):
     y, m, d = map(int, ds.split("-"))
-    return f"{WEEKDAY_FULL.get(dow, dow)}, {MONTHS[m]} {d}"
+    return f"{WEEKDAY_FULL.get(dow, dow)} {MONTHS[m]} {d}"
 
 
 # ---- message rendering ------------------------------------------------------
@@ -113,53 +124,50 @@ def should_post(entry):
     return True                                      # weekday: always (covered OR uncovered alert)
 
 def render(entry, updated=False):
-    """Return (adaptive_card_dict, plain_text_fallback)."""
+    """Return (adaptive_card_dict, plain_text_fallback).
+
+    Every line uses the header ("Large") size. A weekday/Sunday renders one two-line block per
+    shift — "<Word>-shift coverage - <date>" then the primary's name — ordered 1st then 2nd."""
     ds = entry["date"]; dow = entry.get("dow", "")
     title = pretty(ds, dow)
     tag = "  ·  UPDATED" if updated else ""
     t = entry.get("type"); st = entry.get("status")
-    body = [{"type": "TextBlock", "size": "Large", "weight": "Bolder",
-             "text": f"Second-shift coverage — {title}{tag}", "wrap": True}]
+    body = []
     lines = []
-    alert = False
+
+    def big(text, bold=False, attention=False):
+        b = {"type": "TextBlock", "size": "Large", "text": text, "wrap": True}
+        if bold:      b["weight"] = "Bolder"
+        if attention: b["color"] = "Attention"
+        return b
 
     if st == "no-coverage-needed":
-        body.append({"type": "TextBlock", "wrap": True, "spacing": "Small",
-                     "text": "No coverage needed (holiday / shutdown)."})
+        body.append(big(f"Second-shift coverage - {title}{tag}", bold=True))
+        body.append(big("No coverage needed (holiday / shutdown)."))
         lines.append("No coverage needed (holiday / shutdown).")
 
     elif t == "saturday":
-        avail = entry.get("available") or []
-        body.append({"type": "TextBlock", "wrap": True, "spacing": "Small",
-                     "text": "Saturday open availability:"})
-        facts = []
-        for a in avail:
+        body.append(big(f"Saturday availability - {title}{tag}", bold=True))
+        for a in (entry.get("available") or []):
             win = f"{a.get('fromLabel','')}\u2013{a.get('toLabel','')}"
-            facts.append({"title": a.get("name", "?"), "value": win})
+            body.append(big(f"{a.get('name','?')}  {win}"))
             lines.append(f"{a.get('name','?')}: {win}")
-        if facts:
-            body.append({"type": "FactSet", "facts": facts})
 
-    else:  # weekday or sunday — shifts map
+    else:  # weekday or sunday — one two-line block per shift, 1st then 2nd
         shifts = entry.get("shifts") or {}
-        facts = []
+        first = True
         for sh in sorted(shifts.keys()):
             s = shifts[sh] or {}
-            label = f"{s.get('label', sh)} shift"
+            word = SHIFT_WORD.get(sh, s.get("label", sh))
+            body.append(big(f"{word}-shift coverage - {title}{tag if first else ''}", bold=True))
+            first = False
             p = s.get("primary")
             if p:
-                lock = "  \U0001F512" if s.get("locked") else ""
-                facts.append({"title": label, "value": f"\u2605 {p}{lock}"})
-                lines.append(f"{label}: {p}")
+                body.append(big(p))
+                lines.append(f"{word}-shift: {p}")
             else:
-                alert = True
-                facts.append({"title": label, "value": "\u26A0 OPEN — no primary"})
-                lines.append(f"{label}: OPEN — no primary")
-        body.append({"type": "FactSet", "facts": facts})
-        if alert:
-            body.insert(1, {"type": "TextBlock", "wrap": True, "color": "Attention",
-                            "weight": "Bolder", "spacing": "Small",
-                            "text": "\u26A0 A shift is uncovered for tomorrow."})
+                body.append(big("\u26A0 OPEN — no primary", bold=True, attention=True))
+                lines.append(f"{word}-shift: OPEN — no primary")
 
     card = {
         "type": "message",
@@ -171,7 +179,7 @@ def render(entry, updated=False):
             },
         }],
     }
-    plain = f"Second-shift coverage — {title}{tag}: " + "; ".join(lines)
+    plain = f"Coverage - {title}{tag}: " + "; ".join(lines)
     return card, plain
 
 
