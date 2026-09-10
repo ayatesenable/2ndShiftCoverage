@@ -9,10 +9,13 @@ name: Daily second-shift coverage → Teams
 # fires. 21:00–23:30 UTC ≈ 5:00–7:30pm EDT / 4:00–6:30pm EST. Widen or shift as you like.
 on:
   schedule:
-   # - cron: "0,30 21-23 * * *"      # evening re-check window (announce + updates)
-   # - cron: "*/30 * * * *"
-    - cron: "*/30 16-23 * * *"
-    - cron: "0 0-4 * * *"
+    # First announce at 7PM EST (00:00 UTC), then re-check every 30 min through 1PM EST day-of,
+    # posting an UPDATED card only if the assignment changes. 7PM EST = midnight UTC, so the whole
+    # window is one clean UTC range. NOTE: locked to EST (UTC-5); while EDT is in effect (until early
+    # Nov) these fire an hour later locally — 8PM through 2PM. The script's dedup means the extra
+    # checks cost nothing.
+    - cron: "*/30 0-17 * * *"       # every 30 min, 7:00PM–12:30PM EST
+    - cron: "0 18 * * *"            # the 1:00PM EST check
   workflow_dispatch:                # manual run button (uses the inputs below)
     inputs:
       dry_run:
