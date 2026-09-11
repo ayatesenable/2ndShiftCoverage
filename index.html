@@ -390,7 +390,7 @@
 
   <div class="toolbar">
     <span class="count-pill" id="countPill"></span>
-    <span class="ver-tag">v6.4</span>
+    <span class="ver-tag">v6.6</span>
     <span class="spacer"></span>
     <button class="btn-tool" id="refreshBtn" title="Reload the latest shared schedule">↻ Refresh</button>
     <button class="btn-tool dash-hide" id="lockBtn" title="Lock editing — the password will be required again">🔒 Lock</button>
@@ -597,7 +597,13 @@ async function load(){
     if(dbRef){
       const snap = await dbRef.get();
       const p = snap.exists() ? snap.val() : null;
-      if(p) data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{}, sat:p.sat||{}, committed:normCommitted(p.committed), priority:normPriority(p.priority) };
+      if(p){
+        data = { engineers:p.engineers||[], off:p.off||{}, pin:p.pin||{}, assign:p.assign||{}, skip:p.skip||{}, sat:p.sat||{}, committed:normCommitted(p.committed), priority:normPriority(p.priority) };
+        snapshotSaved();        // baseline = what the DB holds, taken BEFORE migrations so any
+                                // migration/heal shows up as a diff and gets written on the next save
+      }else{
+        savedSnap = null;       // empty database — next save writes everything once
+      }
       migrateSaturdays();
       migrateShifts();
       return;
@@ -634,18 +640,42 @@ function migrateSaturdays(){
     if(list.length) data.sat[k]=list; else delete data.sat[k];
   });
 }
+let offNeedsHeal=false;    // set when migration flattens gross off-corruption, so init persists the clean form
 /* Upgrade single-shift (pre-v6) data into the two-shift model. The old app was the
    SECOND shift only, so legacy primaries/assignments migrate onto shift "2"; legacy
    backups are dropped (there is no backup slot any more). Idempotent on v6 data. */
 function migrateShifts(){
   // off: [ids] (whole day) -> { "1":[ids], "2":[ids] }
-  if(data.off) Object.keys(data.off).forEach(k=>{
-    const v=data.off[k];
-    if(Array.isArray(v)){ data.off[k]={ "1":v.slice(), "2":v.slice() }; }
-    else if(v && typeof v==="object"){ data.off[k]={ "1":Array.isArray(v["1"])?v["1"].slice():[], "2":Array.isArray(v["2"])?v["2"].slice():[] }; }
-    else { data.off[k]={ "1":[], "2":[] }; }
-    if(!data.off[k]["1"].length && !data.off[k]["2"].length) delete data.off[k];
-  });
+  // off: normalize to a clean { "1":[ids], "2":[ids] }. Robust to Firebase's array-coercion
+  // of {"1","2"} objects (read back as [null,a,b]) — the old code mistook those coerced arrays
+  // for legacy flat arrays and re-wrapped them under BOTH shifts every load, ballooning the node
+  // until writes exceeded Firebase's size limit. This un-coerces instead (reads index 1/2) and
+  // recursively flattens any pre-existing nesting, so the round-trip is stable and old corruption
+  // self-heals on load.
+  const gatherIds=(x,out)=>{
+    if(Array.isArray(x)) x.forEach(y=>gatherIds(y,out));
+    else if(x && typeof x==="object") Object.keys(x).forEach(kk=>gatherIds(x[kk],out));
+    else if(typeof x==="string") out.push(x);
+  };
+  const uniqIds=arr=>{ const s=new Set(), r=[]; arr.forEach(id=>{ if(id && hasEng(id) && !s.has(id)){ s.add(id); r.push(id); } }); return r; };
+  if(data.off){
+    let offBefore=0; try{ offBefore=JSON.stringify(data.off).length; }catch(e){ offBefore=Infinity; }
+    Object.keys(data.off).forEach(k=>{
+      const v=data.off[k]; let one=[], two=[];
+      if(Array.isArray(v)){
+        if(v.every(el=> el==null || typeof el==="string")){          // genuine pre-v6 whole-day [ids]
+          const ids=uniqIds(v.filter(x=>typeof x==="string")); one=ids.slice(); two=ids.slice();
+        }else{                                                       // Firebase-coerced {"1":a,"2":b} => [null,a,b]
+          const a=[]; gatherIds(v[1],a); const b=[]; gatherIds(v[2],b); one=uniqIds(a); two=uniqIds(b);
+        }
+      }else if(v && typeof v==="object"){
+        const a=[]; gatherIds(v["1"],a); const b=[]; gatherIds(v["2"],b); one=uniqIds(a); two=uniqIds(b);
+      }
+      if(one.length||two.length) data.off[k]={ "1":one, "2":two }; else delete data.off[k];
+    });
+    let offAfter=0; try{ offAfter=JSON.stringify(data.off).length; }catch(e){}
+    if(offBefore>100000 && offAfter < offBefore/2) offNeedsHeal=true;   // gross corruption flattened → persist clean form
+  }
   // pin: {p,s} -> { "1":null, "2":p }  (backup dropped)
   if(data.pin) Object.keys(data.pin).forEach(k=>{
     const v=data.pin[k]||{};
@@ -683,11 +713,48 @@ function normPriority(p){
   }
   return out;
 }
+/* ---------- sectioned saving ----------------------------------------------------------------
+   Earlier builds wrote the ENTIRE data blob on every click (dbRef.set(data)). That made every
+   edit as expensive as the largest thing in the database, so when one section ballooned, every
+   write in the app failed at once ("Write too large") and nothing persisted anywhere.
+   Now each top-level section is written independently: we keep a serialized snapshot of what's
+   in the DB and PATCH only the sections that actually changed. A normal edit touches one or two
+   small sections, so writes stay tiny and one heavy section can't block unrelated edits. */
+const SECTIONS = ["engineers","off","pin","assign","skip","sat","committed","priority"];
+const MAX_SECTION_BYTES = 4 * 1024 * 1024;   // well under Firebase's ceiling; nothing here should approach it
+let savedSnap = null;                        // { section: JSON string as last known in the DB }
+function snapshotSaved(){
+  savedSnap = {};
+  SECTIONS.forEach(k=>{ try{ savedSnap[k] = JSON.stringify(data[k] ?? null); }catch(e){ savedSnap[k] = null; } });
+}
 async function save(){
   try{
-    if(dbRef){ await dbRef.set(data); await publishSchedule(); return; }
+    if(dbRef){
+      if(!savedSnap){                                   // no baseline (first save) — write everything once
+        await dbRef.set(data); snapshotSaved(); await publishSchedule(); return;
+      }
+      const patch={}; let changed=0, oversized=null;
+      SECTIONS.forEach(k=>{
+        let cur; try{ cur = JSON.stringify(data[k] ?? null); }catch(e){ return; }
+        if(cur === savedSnap[k]) return;                // untouched — don't send it
+        if(cur && cur.length > MAX_SECTION_BYTES){ oversized = `${k} (${(cur.length/1048576).toFixed(1)} MB)`; return; }
+        const v = data[k];
+        const empty = v==null || (typeof v==="object" && !Array.isArray(v) && !Object.keys(v).length)
+                              || (Array.isArray(v) && !v.length);
+        patch[k] = empty ? null : v;                    // null removes the node, matching local state
+        changed++;
+      });
+      if(oversized){                                    // refuse rather than wedge the whole database
+        console.error("Refusing to save oversized section:", oversized);
+        toast(`Not saved — ${oversized} is too large. Data may be corrupted.`);
+        return;
+      }
+      if(changed){ await dbRef.update(patch); SECTIONS.forEach(k=>{ if(k in patch) savedSnap[k]=JSON.stringify(data[k] ?? null); }); }
+      await publishSchedule();
+      return;
+    }
     localStorage.setItem(KEY, JSON.stringify(data));
-  }catch(e){ toast("Could not save — check your database or browser storage"); }
+  }catch(e){ console.warn("Save failed", e); toast("Could not save — check your database or browser storage"); }
 }
 
 /* ---------- published feed (name-resolved, id-free mirror for downstream automations) ----------
@@ -1636,6 +1703,7 @@ async function restoreData(file){
   data = { engineers:d.engineers||[], off:d.off||{}, pin:d.pin||{}, assign:d.assign||{}, skip:d.skip||{}, sat:d.sat||{}, committed:normCommitted(d.committed), priority:normPriority(d.priority) };
   migrateSaturdays();
   migrateShifts();
+  savedSnap = null;              // a restore replaces everything — write the whole blob, not a diff
   await save();
   await refreshBoard(false);
   toast("Backup restored");
@@ -1891,6 +1959,10 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeToolMenu(); }
   if(GATE && !authorized){ applyDash(true); activeId=null; }   // locked until the password is entered
   else { try{ if(!dashboard){ const r=localStorage.getItem(DASH_KEY); if(r==="1"){ applyDash(true); activeId=null; } } }catch(e){} }
   await load();
+  if(offNeedsHeal){                 // migration just flattened a ballooned off node — write the clean form back
+    try{ await save(); toast("Repaired corrupted availability data"); }catch(e){ console.warn("Heal save failed", e); }
+    offNeedsHeal=false;
+  }
   if(!data.engineers.length){
     data.engineers = DEFAULT_ENGINEERS.map(n=>({id:uid(),name:n}));
     const r=resolveMonth(viewYear,viewMonth); applyResolved(r);
