@@ -318,6 +318,20 @@
   @media(max-width:620px){.cell{min-height:88px}.nm{font-size:10px}.legend{width:100%;margin-left:0}
     .band{min-height:25px;gap:4px}.band .nm.prim{font-size:11px}.band-lbl{font-size:8px;padding:1px 3px}}
   @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+  /* ---------- desk display mode (?display=1) ---------- */
+  .disp-title{display:none}
+  [data-display="on"] body{padding:6px;cursor:none;overflow:hidden}
+  [data-display="on"] .wrap{max-width:none;height:calc(100vh - 12px);display:flex;flex-direction:column}
+  [data-display="on"] header,[data-display="on"] .controls,[data-display="on"] .status,
+  [data-display="on"] .ticker,[data-display="on"] .toolbar,[data-display="on"] footer.note{display:none}
+  [data-display="on"] .disp-title{display:block;font-family:'Space Grotesk',sans-serif;font-weight:700;
+    font-size:16px;line-height:1;margin:0 2px 5px;color:var(--ink)}
+  [data-display="on"] .cal-card{flex:1;display:flex;flex-direction:column;min-height:0;padding:6px;border-radius:10px}
+  [data-display="on"] .dow{gap:4px;margin-bottom:4px}
+  [data-display="on"] .dow div{padding:0;font-size:10px}
+  [data-display="on"] .cal{flex:1;min-height:0;gap:4px;grid-auto-rows:1fr}
+  [data-display="on"] .cell{min-height:0;padding:4px 5px;overflow:hidden}
 </style>
 
 </head>
@@ -381,6 +395,7 @@
     </div>
   </div>
 
+  <div class="disp-title" id="dispTitle"></div>
   <div class="cal-card">
     <div class="dow" id="dow"></div>
     <div class="cal" id="cal"></div>
@@ -390,7 +405,7 @@
 
   <div class="toolbar">
     <span class="count-pill" id="countPill"></span>
-    <span class="ver-tag">v6.6</span>
+    <span class="ver-tag">v6.7</span>
     <span class="spacer"></span>
     <button class="btn-tool" id="refreshBtn" title="Reload the latest shared schedule">↻ Refresh</button>
     <button class="btn-tool dash-hide" id="lockBtn" title="Lock editing — the password will be required again">🔒 Lock</button>
@@ -590,6 +605,11 @@ async function lockNow(){
   toast("Locked — view-only");
 }
 try{ if(/view|dash/i.test(location.hash||"")) applyDash(true); }catch(e){}
+
+/* ---------- desk display mode (?display=1) ---------- */
+const QS = (()=>{ try{ return new URLSearchParams(location.search); }catch(e){ return new URLSearchParams(); } })();
+const DISPLAY = QS.get("display")==="1";
+if(DISPLAY){ document.documentElement.setAttribute("data-display","on"); applyDash(true); }
 
 /* ---------- storage ---------- */
 async function load(){
@@ -1214,6 +1234,8 @@ function renderCalendar(){
   }
   const cal=document.getElementById("cal");
   cal.innerHTML=html;
+  const dt=document.getElementById("dispTitle");
+  if(dt) dt.textContent=`${MONTHS[viewMonth]} ${viewYear}`;
 
   if(!dashboard) cal.querySelectorAll("[data-ds]").forEach(el=>{
     const ds=el.dataset.ds;
@@ -1972,6 +1994,16 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeToolMenu(); }
   renderCalendar();
   publishSchedule();               // refresh the downstream feed for today's date boundary
 })();
+
+/* desk display: optional theme override, periodic read-only refresh, follows the current month */
+if(DISPLAY){
+  const t=QS.get("theme"); if(t==="dark"||t==="light") applyTheme(t);
+  const mins=Math.max(1, parseInt(QS.get("refresh"),10)||5);
+  setInterval(async()=>{
+    const n=new Date(); viewYear=n.getFullYear(); viewMonth=n.getMonth();
+    await refreshBoard(false);
+  }, mins*60000);
+}
 </script>
 
 </body>
