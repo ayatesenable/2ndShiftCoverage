@@ -325,8 +325,15 @@
   [data-display="on"] .wrap{max-width:none;height:calc(100vh - 12px);display:flex;flex-direction:column}
   [data-display="on"] header,[data-display="on"] .controls,[data-display="on"] .status,
   [data-display="on"] .ticker,[data-display="on"] .toolbar,[data-display="on"] footer.note{display:none}
-  [data-display="on"] .disp-title{display:block;font-family:'Space Grotesk',sans-serif;font-weight:700;
-    font-size:16px;line-height:1;margin:0 2px 5px;color:var(--ink)}
+  [data-display="on"] .disp-title{display:flex;align-items:center;gap:6px;margin:0 2px 5px}
+  [data-display="on"] #dispTitle{flex:1;font-family:'Space Grotesk',sans-serif;font-weight:700;
+    font-size:16px;line-height:1;color:var(--ink)}
+  .disp-nav{height:30px;min-width:40px;padding:0 10px;border:1px solid var(--line-strong);border-radius:8px;
+    background:var(--card);color:var(--ink);font-family:'Inter',sans-serif;font-size:18px;font-weight:600;
+    line-height:1;cursor:none;display:grid;place-items:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  .disp-nav:active{border-color:var(--accent);color:var(--accent)}
+  .disp-today{font-size:12px;letter-spacing:.04em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace}
+  .disp-today[hidden]{display:none}
   [data-display="on"] .cal-card{flex:1;display:flex;flex-direction:column;min-height:0;padding:6px;border-radius:10px}
   [data-display="on"] .dow{gap:4px;margin-bottom:4px}
   [data-display="on"] .dow div{padding:0;font-size:10px}
@@ -395,7 +402,12 @@
     </div>
   </div>
 
-  <div class="disp-title" id="dispTitle"></div>
+  <div class="disp-title">
+    <span id="dispTitle"></span>
+    <button class="disp-nav disp-today" id="dispToday" type="button" hidden>Today</button>
+    <button class="disp-nav" id="dispPrev" type="button" aria-label="Previous month">&#8249;</button>
+    <button class="disp-nav" id="dispNext" type="button" aria-label="Next month">&#8250;</button>
+  </div>
   <div class="cal-card">
     <div class="dow" id="dow"></div>
     <div class="cal" id="cal"></div>
@@ -405,7 +417,7 @@
 
   <div class="toolbar">
     <span class="count-pill" id="countPill"></span>
-    <span class="ver-tag">v6.7</span>
+    <span class="ver-tag">v6.8</span>
     <span class="spacer"></span>
     <button class="btn-tool" id="refreshBtn" title="Reload the latest shared schedule">↻ Refresh</button>
     <button class="btn-tool dash-hide" id="lockBtn" title="Lock editing — the password will be required again">🔒 Lock</button>
@@ -1236,6 +1248,8 @@ function renderCalendar(){
   cal.innerHTML=html;
   const dt=document.getElementById("dispTitle");
   if(dt) dt.textContent=`${MONTHS[viewMonth]} ${viewYear}`;
+  const dTo=document.getElementById("dispToday");
+  if(dTo){ const n=new Date(); dTo.hidden = (viewYear===n.getFullYear() && viewMonth===n.getMonth()); }
 
   if(!dashboard) cal.querySelectorAll("[data-ds]").forEach(el=>{
     const ds=el.dataset.ds;
@@ -1998,11 +2012,24 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeToolMenu(); }
 /* desk display: optional theme override, periodic read-only refresh, follows the current month */
 if(DISPLAY){
   const t=QS.get("theme"); if(t==="dark"||t==="light") applyTheme(t);
-  const mins=Math.max(1, parseInt(QS.get("refresh"),10)||5);
+  const refreshMs=Math.max(1, parseInt(QS.get("refresh"),10)||5)*60000;
+  const idleMs=Math.max(15, parseInt(QS.get("idle"),10)||120)*1000;   // snap back to this month after idle
+  let lastNav=0, lastRefresh=Date.now();
+  const onCurrent=()=>{ const n=new Date(); return viewYear===n.getFullYear() && viewMonth===n.getMonth(); };
+  const goCurrent=()=>{ const n=new Date(); viewYear=n.getFullYear(); viewMonth=n.getMonth(); syncMonthYear(); };
+  document.getElementById("dispPrev").addEventListener("click",()=>{ lastNav=Date.now(); shiftMonth(-1); });
+  document.getElementById("dispNext").addEventListener("click",()=>{ lastNav=Date.now(); shiftMonth(1); });
+  document.getElementById("dispToday").addEventListener("click",()=>{ lastNav=0; goCurrent(); renderCalendar(); });
   setInterval(async()=>{
-    const n=new Date(); viewYear=n.getFullYear(); viewMonth=n.getMonth();
-    await refreshBoard(false);
-  }, mins*60000);
+    const idle = Date.now()-lastNav > idleMs;
+    if(Date.now()-lastRefresh >= refreshMs){        // periodic read-only refresh
+      lastRefresh=Date.now();
+      if(idle) goCurrent();                         // don't yank the view while someone is browsing
+      await refreshBoard(false);
+    }else if(idle && !onCurrent()){                 // idle on another month: return to today
+      goCurrent(); renderCalendar();
+    }
+  }, 15000);
 }
 </script>
 
