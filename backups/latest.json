@@ -90,9 +90,6 @@
     "2026-08-18": {
       "2": "mrciacy2cjps3"
     },
-    "2026-08-19": {
-      "2": "mrjcmafzbsplf"
-    },
     "2026-08-20": {
       "2": "mrciacy2cjps3"
     },
@@ -128,9 +125,6 @@
     },
     "2026-09-04": {
       "2": "mrciacy2cjps3"
-    },
-    "2026-09-08": {
-      "2": "mrjcmafzbsplf"
     },
     "2026-09-09": {
       "2": "mrciacy2cjps3"
@@ -181,7 +175,7 @@
       "2": "mrciacy2cjps3"
     },
     "2026-10-01": {
-      "2": "mrjcmafzbsplf"
+      "2": "mtk6ntxgj3f0a"
     },
     "2026-10-02": {
       "2": "mrciacy2cjps3"
@@ -396,16 +390,16 @@
       "name": "Jing"
     },
     {
-      "id": "mrjcmafzbsplf",
-      "name": "Abinay"
-    },
-    {
       "id": "mrp423kfqtpq3",
       "name": "James"
     },
     {
       "id": "mtk6ntxgj3f0a",
       "name": "DJ"
+    },
+    {
+      "id": "mvl6rdt5nwmhy",
+      "name": "Abinay"
     }
   ],
   "off": {
@@ -433,67 +427,41 @@
       null,
       [
         "mrcbnsy7oqucc",
-        "mre05afx4za5l",
-        "mrjcmafzbsplf"
+        "mre05afx4za5l"
       ],
       [
         "mrcbnsy7oqucc",
-        "mre05afx4za5l",
-        "mrjcmafzbsplf"
+        "mre05afx4za5l"
       ]
     ],
     "2026-07-14": [
       null,
       [
         "mrcbnsy7oqucc",
-        "mre05afx4za5l",
-        "mrjcmafzbsplf"
+        "mre05afx4za5l"
       ],
       [
         "mrcbnsy7oqucc",
-        "mre05afx4za5l",
-        "mrjcmafzbsplf"
+        "mre05afx4za5l"
       ]
     ],
     "2026-07-15": [
       null,
       [
-        "mrcbnsy7oqucc",
-        "mrjcmafzbsplf"
+        "mrcbnsy7oqucc"
       ],
       [
-        "mrcbnsy7oqucc",
-        "mrjcmafzbsplf"
-      ]
-    ],
-    "2026-07-16": [
-      null,
-      [
-        "mrjcmafzbsplf"
-      ],
-      [
-        "mrjcmafzbsplf"
-      ]
-    ],
-    "2026-07-17": [
-      null,
-      [
-        "mrjcmafzbsplf"
-      ],
-      [
-        "mrjcmafzbsplf"
+        "mrcbnsy7oqucc"
       ]
     ],
     "2026-07-20": [
       null,
       [
         "mre05afx4za5l",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3"
       ],
       [
         "mre05afx4za5l",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3"
       ]
     ],
@@ -501,12 +469,10 @@
       null,
       [
         "mre05afx4za5l",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3"
       ],
       [
         "mre05afx4za5l",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3"
       ]
     ],
@@ -514,12 +480,10 @@
       null,
       [
         "mre05afx4za5l",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3"
       ],
       [
         "mre05afx4za5l",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3"
       ]
     ],
@@ -527,13 +491,11 @@
       null,
       [
         "mre05afx4za5l",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3",
         "mrcddrfdia96e"
       ],
       [
         "mre05afx4za5l",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3",
         "mrcddrfdia96e"
       ]
@@ -543,14 +505,12 @@
       [
         "mrcbnsy7oqucc",
         "mre05afx4za5l",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3",
         "mrcddrfdia96e"
       ],
       [
         "mrcbnsy7oqucc",
         "mre05afx4za5l",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3",
         "mrcddrfdia96e"
       ]
@@ -558,12 +518,10 @@
     "2026-07-27": [
       null,
       [
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3",
         "mrcddrfdia96e"
       ],
       [
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3",
         "mrcddrfdia96e"
       ]
@@ -571,11 +529,9 @@
     "2026-07-28": [
       null,
       [
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3"
       ],
       [
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3"
       ]
     ],
@@ -583,13 +539,11 @@
       null,
       [
         "mrcbnsy7oqucc",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3",
         "mrcddrfdia96e"
       ],
       [
         "mrcbnsy7oqucc",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3",
         "mrcddrfdia96e"
       ]
@@ -598,13 +552,11 @@
       null,
       [
         "mrcbnsy7oqucc",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3",
         "mrcddrfdia96e"
       ],
       [
         "mrcbnsy7oqucc",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3",
         "mrcddrfdia96e"
       ]
@@ -613,13 +565,11 @@
       null,
       [
         "mrcbnsy7oqucc",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3",
         "mrcddrfdia96e"
       ],
       [
         "mrcbnsy7oqucc",
-        "mrjcmafzbsplf",
         "mrp423kfqtpq3",
         "mrcddrfdia96e"
       ]
@@ -627,53 +577,36 @@
     "2026-08-03": [
       null,
       [
-        "mrcbnsy7oqucc",
-        "mrjcmafzbsplf"
+        "mrcbnsy7oqucc"
       ],
       [
-        "mrcbnsy7oqucc",
-        "mrjcmafzbsplf"
+        "mrcbnsy7oqucc"
       ]
     ],
     "2026-08-04": [
       null,
       [
-        "mrcbnsy7oqucc",
-        "mrjcmafzbsplf"
+        "mrcbnsy7oqucc"
       ],
       [
-        "mrcbnsy7oqucc",
-        "mrjcmafzbsplf"
-      ]
-    ],
-    "2026-08-05": [
-      null,
-      [
-        "mrjcmafzbsplf"
-      ],
-      [
-        "mrjcmafzbsplf"
+        "mrcbnsy7oqucc"
       ]
     ],
     "2026-08-06": [
       null,
       [
-        "mrcbnsy7oqucc",
-        "mrjcmafzbsplf"
+        "mrcbnsy7oqucc"
       ],
       [
-        "mrcbnsy7oqucc",
-        "mrjcmafzbsplf"
+        "mrcbnsy7oqucc"
       ]
     ],
     "2026-08-07": [
       null,
       [
-        "mrjcmafzbsplf",
         "mrciacy2cjps3"
       ],
       [
-        "mrjcmafzbsplf",
         "mrciacy2cjps3"
       ]
     ],
@@ -719,12 +652,10 @@
       null,
       [
         "mrcddrfdia96e",
-        "mrjcmafzbsplf",
         "mrcbnsy7oqucc"
       ],
       [
         "mrcddrfdia96e",
-        "mrjcmafzbsplf",
         "mrcbnsy7oqucc"
       ]
     ],
@@ -758,12 +689,10 @@
     "2026-08-21": [
       null,
       [
-        "mrcbnsy7oqucc",
-        "mrjcmafzbsplf"
+        "mrcbnsy7oqucc"
       ],
       [
-        "mrcbnsy7oqucc",
-        "mrjcmafzbsplf"
+        "mrcbnsy7oqucc"
       ]
     ],
     "2026-08-26": [
@@ -784,15 +713,6 @@
       ],
       [
         "mrcbnsy7oqucc"
-      ]
-    ],
-    "2026-08-28": [
-      null,
-      [
-        "mrjcmafzbsplf"
-      ],
-      [
-        "mrjcmafzbsplf"
       ]
     ],
     "2026-09-02": [
@@ -855,23 +775,17 @@
     "2026-09-23": [
       null,
       [
-        "mrciacy2cjps3",
-        "mrjcmafzbsplf"
-      ],
-      [
-        "mrjcmafzbsplf"
+        "mrciacy2cjps3"
       ]
     ],
     "2026-09-24": [
       null,
       [
         "mrciacy2cjps3",
-        "mrp423kfqtpq3",
-        "mrjcmafzbsplf"
+        "mrp423kfqtpq3"
       ],
       [
-        "mrp423kfqtpq3",
-        "mrjcmafzbsplf"
+        "mrp423kfqtpq3"
       ]
     ],
     "2026-09-25": [
@@ -880,14 +794,12 @@
         "mrciacy2cjps3",
         "mrp423kfqtpq3",
         "mrcddrfdia96e",
-        "mrcbnsy7oqucc",
-        "mrjcmafzbsplf"
+        "mrcbnsy7oqucc"
       ],
       [
         "mrp423kfqtpq3",
         "mrcddrfdia96e",
-        "mrcbnsy7oqucc",
-        "mrjcmafzbsplf"
+        "mrcbnsy7oqucc"
       ]
     ],
     "2026-09-28": [
@@ -977,7 +889,6 @@
         "mrciacy2cjps3",
         "mrcddrfdia96e",
         "mtk6ntxgj3f0a",
-        "mrjcmafzbsplf",
         "mrdhpzvt3a0ox"
       ]
     },
@@ -1069,14 +980,8 @@
     "2026-08-13": {
       "2": "mrciacy2cjps3"
     },
-    "2026-08-19": {
-      "2": "mrjcmafzbsplf"
-    },
     "2026-09-02": {
       "2": "mrdhpzvt3a0ox"
-    },
-    "2026-09-08": {
-      "2": "mrjcmafzbsplf"
     }
   },
   "priority": {
@@ -1087,7 +992,6 @@
       "mrciacy2cjps3": 1,
       "mrdhpzvt3a0ox": 2,
       "mre05afx4za5l": 2,
-      "mrjcmafzbsplf": 1,
       "mrp423kfqtpq3": 3,
       "mtk6ntxgj3f0a": 1
     }
@@ -1133,21 +1037,9 @@
     ],
     "2026-09-12": [
       {
-        "from": "07:00",
-        "id": "mrjcmafzbsplf",
-        "to": "15:00"
-      },
-      {
         "from": "15:00",
         "id": "mre05afx4za5l",
         "to": "22:00"
-      }
-    ],
-    "2026-11-07": [
-      {
-        "from": "07:00",
-        "id": "mrjcmafzbsplf",
-        "to": "15:00"
       }
     ]
   },
